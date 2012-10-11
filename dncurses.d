@@ -6,7 +6,7 @@ import std.range : appender;
 import core.vararg;
 
 private import nc = ncurses;
-public import ncurses : getch, flash, LINES, getstr;
+public import ncurses : getch, flash;
 
 alias nc.chtype CharType;
 
@@ -202,32 +202,33 @@ public:
 	 * @param c The string to put
 	 */
 	auto mvaddstr(int y, int x, string str) {
-		if(move(y,x) == nc.ERR) return nc.ERR;
+		if(move(y,x) == nc.ERR) {
+			throw new NCursesError("Could not move to correct location");
+		}
 		return nc.waddstr(m_raw, str.toStringz());
 	}
 
 	/** Get a string from the window
 	 */
-	char[] getstr(int maxlen = -1) {
-		if(maxlen == -1) {
-			// Just get what you can
-			auto ret = appender!string();
-			int ch = nc.getch();
-			while(!(ch=='\n' || ch == '\r' || ch == 0)) {
-				ret.put(cast(char)ch);
-				ch = nc.getch();
-			}
-			return ret.data.dup;
+	char[] getstr() {
+		// Get as much data as possible
+		auto ret = appender!string();
+		int ch = nc.getch();
+		while(!(ch=='\n' || ch == '\r' || ch == '\x04')) {
+			ret.put(cast(char)ch);
+			ch = nc.getch();
+		}
+		return ret.data.dup;
+	}
+	char[] getstr(int maxlen) {
+		// We know the max length
+		char[] ret = new char[maxlen];
+		if(nc.getnstr(ret.ptr,maxlen) == nc.OK) {
+			// All good!
+			return ret[0..$];
 		} else {
-			// We know the max length
-			char[] ret = new char[maxlen];
-			if(nc.getnstr(ret.ptr,maxlen) == nc.OK) {
-				// All good!
-				return ret[0..$];
-			} else {
-				// Something's wrong
-				throw new NCursesError("Error receiving input");
-			}
+			// Something's wrong
+			throw new NCursesError("Error receiving input");
 		}
 	}
 
@@ -246,16 +247,16 @@ public:
 		return nc.wmove(m_raw,y,x);
 	}
 	@property auto cur() {
-		return Pos(nc.getcurx(m_raw), nc.getcury(m_raw));
+		return Pos(nc.getcury(m_raw), nc.getcurx(m_raw));
 	}
 	@property auto beg() {
-		return Pos(nc.getbegx(m_raw), nc.getbegy(m_raw));
+		return Pos(nc.getbegy(m_raw), nc.getbegx(m_raw));
 	}
 	@property auto max() {
-		return Pos(nc.getmaxx(m_raw), nc.getmaxy(m_raw));
+		return Pos(nc.getmaxy(m_raw), nc.getmaxx(m_raw));
 	}
 	@property auto par() {
-		return Pos(nc.getparx(m_raw), nc.getpary(m_raw));
+		return Pos(nc.getpary(m_raw), nc.getparx(m_raw));
 	}
 
 
