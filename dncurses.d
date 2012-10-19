@@ -1,12 +1,15 @@
 module metus.dncurses.dncurses;
 
 import std.c.string : strlen;
-import std.string : toStringz;
+import std.string : toStringz, format, toUpper;
 import std.range : appender;
+import std.algorithm;
+import std.traits;
 import core.vararg;
 
 private import nc = ncurses;
-public import ncurses : getch, flash;
+public import ncurses : killchar, erasechar;
+public import ncurses : flash;
 
 alias nc.chtype CharType;
 
@@ -28,17 +31,12 @@ public:
 	}
 };
 
-
-immutable enum Color : nc.chtype {
-	/* colors */
-	BLACK = nc.COLOR_BLACK,
-	RED = nc.COLOR_RED,
-	GREEN = nc.COLOR_GREEN,
-	YELLOW = nc.COLOR_YELLOW,
-	BLUE = nc.COLOR_BLUE,
-	MAGENTA = nc.COLOR_MAGENTA,
-	CYAN = nc.COLOR_CYAN,
-	WHITE = nc.COLOR_WHITE
+struct Color {
+	@disable this();
+	template opDispatch(string key)
+	{
+		enum opDispatch = mixin("nc.COLOR_"~key.toUpper());
+	}
 }
 
 immutable enum Attribute : nc.chtype {
@@ -90,54 +88,120 @@ immutable enum Flag {
 }
 
 immutable enum Mode {
-	Cooked,
-	CBreak,
-	Raw,
+	Cooked = 0,
+	CBreak = 1<<0,
+	Raw = 1<<1,
+	HalfDelay = CBreak|(1<<2),
 }
-private static Mode currMode=Mode.Raw;
+private static Mode currMode=Mode.Cooked; // Why did I have this default to raw?
+private static bool isEcho;
 
 int echo(bool echoon) {
-	return (echoon ? nc.echo() : nc.noecho());
+	return ((isEcho=echoon)==true ? nc.echo() : nc.noecho());
 }
 
-void mode(Mode r) {
-	if(r == currMode) {
+auto qiflush(bool flush) {
+	return (flush?nc.qiflush():nc.noqiflush());
+}
+
+void mode(Mode r, ubyte delay = 0) {
+	if(r & currMode) {
 		return;
-	} else if(r == Mode.Cooked) {
-		if(currMode == Mode.CBreak) {
-			nc.nocbreak();
-		} else if(currMode == Mode.Raw) {
-			nc.noraw();
+	}
+	with(Mode)
+	final switch(currMode) {
+		case Cooked: {
+			// Do nothing
+			break;
 		}
-	} else if(r == Mode.CBreak) {
-		if(currMode == Mode.Cooked) {
-			nc.cbreak();
-		} else if(currMode == Mode.Raw) {
-			nc.noraw();
-			nc.cbreak();
-		}
-	} else if(r == Mode.Raw) {
-		if(currMode == Mode.Cooked) {
-			nc.cbreak();
-		} else if(currMode == Mode.CBreak) {
+		case CBreak:
+		case HalfDelay: {
 			nc.nocbreak();
+			break;
+		}
+		case Raw: {
+			nc.noraw();
+			break;
+		}
+	}
+
+	with(Mode)
+	final switch(r) {
+		case Cooked: {
+			nc.noraw();
+			nc.nocbreak();
+			break;
+		}
+		case CBreak: {
+			nc.cbreak();
+			break;
+		}
+		case HalfDelay: {
+			if(delay != 0) {
+				// They overrode the default value
+				nc.halfdelay(delay);
+			} else {
+				throw new NCursesError("Invalid halfdelay time");
+			}
+			break;
+		}
+		case Raw: {
 			nc.raw();
+			break;
 		}
 	}
 	currMode = r;
 }
 
+struct Key {
+	@disable this();
+	template opDispatch(string key)
+	{
+		static if(key.toUpper()[0] == 'F' && key.length > 1 && (key[1]>'0'&&key[1]<='9')) {
+			enum opDispatch = mixin("nc.KEY_F("~key[1..$]~")");
+		} else {
+			enum opDispatch = mixin("nc.KEY_"~key.toUpper());
+		}
+	}
+}
+
+auto intrflush(bool shouldFlush) {
+	// nc.intrflush ignores the window parameter...
+	return nc.intrflush(nc.stdscr,shouldFlush);
+}
+
+
+/** Window wrapper
+ */
 class Window {
 private:
 	nc.WINDOW* m_raw;
-	struct Pos {
-		immutable int x,y;
-		this(int _y, int _x) {
-			this.x = _x;
-			this.y = _y;
+	bool currKeypad=false;
+	bool currMeta = false;
+
+	// Handle coordinate functions
+	mixin template Coord(string name) {
+		@property auto Coord() {
+			struct Pos {
+				immutable int x,y;
+				this(int _y, int _x) {
+					this.x = _x;
+					this.y = _y;
+				}
+			}
+			return mixin("Pos(nc.get"~name~"y(m_raw), nc.get"~name~"x(m_raw))");
 		}
+		mixin("alias Coord "~name~";");
 	}
-public:
+
+	mixin template MoveWrapper(string Func) {
+		auto MoveWrapper(T...)(int y, int x, T t) {
+			this.move(y,x);
+			return mixin(Func~"(t)");
+		}
+		mixin("alias MoveWrapper mv"~Func~";");
+	}
+
 	/**
 	 * Constructor from a C-style window
 	 */
@@ -145,48 +209,53 @@ public:
 		m_raw = raw;
 	}
 
+public:
+	/** User constructor
+	 *
+	 */
+	this(int nlines, int ncols, int y0, int x0)
+	in {
+		assert(0 <= y0 && y0 < nc.getmaxy(nc.stdscr));
+		assert(0 <= x0 && x0 < nc.getmaxx(nc.stdscr));
+	}
+	body {
+		m_raw = nc.newwin(nlines,ncols,y0,x0);
+	 }
 
-	// I/O
+	auto nodelay(bool bf) {
+		return nc.nodelay(m_raw,bf);
+	}
+	auto timeout(int delay) {
+		return nc.wtimeout(m_raw,delay);
+	}
+	auto keypad(bool enabled) {
+		return nc.keypad(m_raw,(currKeypad=enabled));
+	}
+	auto meta(bool enabled) {
+		return nc.meta(m_raw,(currMeta=enabled));
+	}
+
+
+	// Output
+
 	/** Print to a window with printf functionality
 	 *
 	 * @param fmt The format specifier
 	 */
-	extern(C) int printf(string fmt, ...) {
-		va_list ap;
-		version (X86_64) va_start(ap, __va_argsave);
-		else version (X86) va_start(ap, fmt);
-		nc.vwprintw(m_raw, fmt.toStringz(), ap);
-		return 0;
+	auto printf(T...)(string fmt, T d) {
+		string ret = format(fmt, d);
+		return nc.waddstr(m_raw, ret.toStringz());
 	}
-	/** Move and print to a window with printf functionality
-	 *
-	 * @param fmt The format specifier
-	 */
-	extern(C) int mvprintf(int y, int x, string fmt, ...) {
-		if(move(y,x) == nc.ERR) return nc.ERR;
-		va_list ap;
-		version (X86_64) va_start(ap, __va_argsave);
-		else version (X86) va_start(ap, fmt);
-		nc.vwprintw(m_raw, fmt.toStringz(), ap);
-		return 0;
-	}
+	mixin MoveWrapper!"printf";
+
 	/** Put a character at the current position on the window
 	 *
 	 * @param c The character (and attributes) to put
 	 */
 	auto addch(C:CharType)(C c) {
-		return nc.waddch(c);
+		return nc.waddch(m_raw, c);
 	}
-	/** Move to a given position and put the given character
-	 *
-	 * @param y The row to go to
-	 * @param x The column to go to
-	 * @param c The character (and attributes) to put
-	 */
-	auto mvaddch(C:CharType)(int y, int x, C c) {
-		if(move(y,x) == nc.ERR) return nc.ERR;
-		return nc.waddch(c);
-	}
+	mixin MoveWrapper!"addch";
 
 	/** Put a string at the current position on the window
 	 *
@@ -195,42 +264,68 @@ public:
 	auto addstr(string str) {
 		return nc.waddstr(m_raw, str.toStringz());
 	}
-	/** Move to a given position and put the given string
-	 *
-	 * @param y The row to go to
-	 * @param x The column to go to
-	 * @param c The string to put
+	mixin MoveWrapper!"addstr";
+
+
+	// Input
+
+	/**
+	 * Get a single keypress
 	 */
-	auto mvaddstr(int y, int x, string str) {
-		if(move(y,x) == nc.ERR) {
-			throw new NCursesError("Could not move to correct location");
-		}
-		return nc.waddstr(m_raw, str.toStringz());
+	auto getch() {
+		return nc.wgetch(m_raw);
 	}
+	mixin MoveWrapper!"getch";
 
 	/** Get a string from the window
 	 */
-	char[] getstr() {
+	char[] getstr()() {
 		// Get as much data as possible
-		auto ret = appender!string();
-		int ch = nc.getch();
-		while(!(ch=='\n' || ch == '\r' || ch == '\x04')) {
-			ret.put(cast(char)ch);
-			ch = nc.getch();
+		// Make sure not to output directly
+		bool tmpecho = isEcho;
+		echo(false);
+		scope(exit) echo(tmpecho);
+
+		char[] ret;
+		int buf;
+		bool isKill(int ch) {
+			return (currKeypad
+					? [nc.killchar(), nc.erasechar(), Key.Left, Key.Backspace]
+					: [cast(int)nc.killchar(), cast(int)nc.erasechar()]
+				).canFind(ch);
 		}
-		return ret.data.dup;
+		bool isEnd(int ch) {return "\r\n\x04".canFind(ch);}
+		while((buf=nc.getch()),!isEnd(buf)) {
+			if(isKill(buf)) {
+				if(ret.length) {
+					ret = ret[0..($-1)];
+					if(cur.x) {
+						mvaddch(cur.y, cur.x-1,' ');
+						move(cur.y,cur.x-1);
+					} else {
+						mvaddch(cur.y-1, max.x,' ');
+						move(cur.y-1,max.x);
+					}
+				}
+			} else {
+				ret ~= cast(char)buf;
+				addch(cast(char)buf);
+			}
+		}
+		return ret.dup;
 	}
-	char[] getstr(int maxlen) {
+	C[] getstr(C:CharType)(int maxlen) {
 		// We know the max length
 		char[] ret = new char[maxlen];
 		if(nc.getnstr(ret.ptr,maxlen) == nc.OK) {
 			// All good!
-			return ret[0..$];
+			return ret.dup;
 		} else {
 			// Something's wrong
 			throw new NCursesError("Error receiving input");
 		}
 	}
+	mixin MoveWrapper!"getstr";
 
 
 	// Updating
@@ -244,20 +339,15 @@ public:
 
 	// Movement and X/Y
 	auto move(int y, int x) {
-		return nc.wmove(m_raw,y,x);
+		if(nc.wmove(m_raw,y,x)==nc.ERR) {
+			throw new NCursesError("Could not move to correct location");
+		}
 	}
-	@property auto cur() {
-		return Pos(nc.getcury(m_raw), nc.getcurx(m_raw));
-	}
-	@property auto beg() {
-		return Pos(nc.getbegy(m_raw), nc.getbegx(m_raw));
-	}
-	@property auto max() {
-		return Pos(nc.getmaxy(m_raw), nc.getmaxx(m_raw));
-	}
-	@property auto par() {
-		return Pos(nc.getpary(m_raw), nc.getparx(m_raw));
-	}
+
+	mixin Coord!"cur";
+	mixin Coord!"beg";
+	mixin Coord!"max";
+	mixin Coord!"par";
 
 
 	// Border and graphics
@@ -273,6 +363,14 @@ public:
 	{
 		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
 	}
+	int hline(C:CharType)(C ch, int n) {
+		return nc.whline(m_raw, ch, n);
+	}
+	int vline(C:CharType)(C ch, int n) {
+		return nc.wvline(m_raw, ch, n);
+	}
+	mixin MoveWrapper!"hline";
+	mixin MoveWrapper!"vline";
 
 
 	// Attributes
@@ -290,8 +388,8 @@ public:
 // Wrap the original ncurses implementations
 public Window stdwin;
 auto initscr() {
-	nc.initscr(); // Call library initscr
-	stdwin = new Window(nc.stdscr); // Bind our standard window
+	 // Call library initscr and bind our standard window
+	stdwin = new Window(nc.initscr());
 	return stdwin;
 }
 auto endwin() {
