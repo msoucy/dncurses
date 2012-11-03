@@ -2,14 +2,9 @@ module metus.dncurses.dncurses;
 
 import std.c.string : strlen;
 import std.string : toStringz, format, toUpper;
-import std.range : appender;
 import std.algorithm;
-import std.traits;
-import core.vararg;
 
-private import nc = ncurses;
-public import ncurses : killchar, erasechar;
-public import ncurses : flash;
+private import nc = deimos.ncurses.ncurses;
 
 alias nc.chtype CharType;
 
@@ -39,7 +34,8 @@ struct Color {
 	}
 }
 
-immutable enum Attribute : nc.chtype {
+static if(0)
+immutable enum Attribute : CharType {
 	/// Normal display (no highlight)
 	Normal = nc.A_NORMAL,
 	/// Bit-mask to get the attributes of a character
@@ -86,6 +82,24 @@ immutable enum Flag {
     hasmoved = 0x20, /* has cursor moved since last refresh? */
     wrapped = 0x40 /* cursor was just wrappped */
 }
+private static bool isEcho;
+
+auto echo(bool echoon) {
+	bool currEcho = isEcho;
+	if(((isEcho=echoon)==true ? nc.echo() : nc.noecho()) == nc.ERR) {
+		throw new NCursesError("Could not change echo mode");
+	}
+	return currEcho;
+}
+
+auto qiflush(bool flush) {
+	return (flush?nc.qiflush():nc.noqiflush());
+}
+
+auto intrflush(bool shouldFlush) {
+	// nc.intrflush ignores the window parameter...
+	return nc.intrflush(nc.stdscr,shouldFlush);
+}
 
 immutable enum Mode {
 	Cooked = 0,
@@ -94,15 +108,6 @@ immutable enum Mode {
 	HalfDelay = CBreak|(1<<2),
 }
 private static Mode currMode=Mode.Cooked; // Why did I have this default to raw?
-private static bool isEcho;
-
-int echo(bool echoon) {
-	return ((isEcho=echoon)==true ? nc.echo() : nc.noecho());
-}
-
-auto qiflush(bool flush) {
-	return (flush?nc.qiflush():nc.noqiflush());
-}
 
 void mode(Mode r, ubyte delay = 0) {
 	if(r & currMode) {
@@ -165,9 +170,9 @@ struct Key {
 	}
 }
 
-auto intrflush(bool shouldFlush) {
-	// nc.intrflush ignores the window parameter...
-	return nc.intrflush(nc.stdscr,shouldFlush);
+enum Positioning {
+	Relative,
+	Absolute
 }
 
 
@@ -175,6 +180,7 @@ auto intrflush(bool shouldFlush) {
  */
 class Window {
 private:
+	Window m_parent = null;
 	nc.WINDOW* m_raw;
 	bool currKeypad=false;
 	bool currMeta = false;
@@ -205,22 +211,57 @@ private:
 	/**
 	 * Constructor from a C-style window
 	 */
-	this(nc.WINDOW* raw) {
+	this(nc.WINDOW* raw)
+	in {
+		assert(raw);
+	} body {
 		m_raw = raw;
 	}
 
 public:
-	/** User constructor
+	/** Construct an ncurses Window
 	 *
+	 * @param nlines The number of lines for the window
+	 * @param lcols The number of columns for the window
+	 * @param y0 The number of the first row that the window uses
+	 * @param x0 The number of the first column that the window uses
 	 */
 	this(int nlines, int ncols, int y0, int x0)
 	in {
 		assert(0 <= y0 && y0 < nc.getmaxy(nc.stdscr));
 		assert(0 <= x0 && x0 < nc.getmaxx(nc.stdscr));
 	}
+	out {
+		assert(m_raw);
+	}
 	body {
 		m_raw = nc.newwin(nlines,ncols,y0,x0);
-	 }
+	}
+
+	/** Construct an ncurses Window
+	 *
+	 * @param myParent The parent window of the window to be created
+	 * @param nlines The number of lines for the window
+	 * @param lcols The number of columns for the window
+	 * @param y0 The number of the first row that the window uses
+	 * @param x0 The number of the first column that the window uses
+	 */
+	this(Window myParent, int nlines, int ncols, int y0, int x0)
+	in {
+		assert(0 <= y0 && y0 < nc.getmaxy(nc.stdscr));
+		assert(0 <= x0 && x0 < nc.getmaxx(nc.stdscr));
+	}
+	out {
+		assert(m_raw);
+	}
+	body {
+		m_parent = myParent;
+		m_raw = nc.newwin(nlines,ncols,y0,x0);
+	}
+
+	@property Window parent() {
+		return m_parent;
+	}
 
 	auto nodelay(bool bf) {
 		return nc.nodelay(m_raw,bf);
@@ -244,7 +285,9 @@ public:
 	 */
 	auto printf(T...)(string fmt, T d) {
 		string ret = format(fmt, d);
-		return nc.waddstr(m_raw, ret.toStringz());
+		if(nc.waddstr(m_raw, ret.toStringz()) == nc.ERR) {
+			throw new NCursesError("Error printing string");
+		}
 	}
 	mixin MoveWrapper!"printf";
 
@@ -253,16 +296,29 @@ public:
 	 * @param c The character (and attributes) to put
 	 */
 	auto addch(C:CharType)(C c) {
-		return nc.waddch(m_raw, c);
+		if(nc.waddch(m_raw, c) == nc.ERR) {
+			throw new NCursesError("Error adding a character");
+		}
 	}
 	mixin MoveWrapper!"addch";
+
+	/** Delete the character under the cursor
+	 */
+	auto delch() {
+		if(nc.wdelch(m_raw) == nc.ERR) {
+			throw new NCursesError("Error deleting a character");
+		}
+	}
+	mixin MoveWrapper!"delch";
 
 	/** Put a string at the current position on the window
 	 *
 	 * @param str The string to put
 	 */
 	auto addstr(string str) {
-		return nc.waddstr(m_raw, str.toStringz());
+		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
+			throw new NCursesError("Error adding string");
+		}
 	}
 	mixin MoveWrapper!"addstr";
 
@@ -279,11 +335,10 @@ public:
 
 	/** Get a string from the window
 	 */
-	char[] getstr()() {
+	char[] getstr() {
 		// Get as much data as possible
 		// Make sure not to output directly
-		bool tmpecho = isEcho;
-		echo(false);
+		bool tmpecho = echo(false);
 		scope(exit) echo(tmpecho);
 
 		char[] ret;
@@ -299,22 +354,26 @@ public:
 			if(isKill(buf)) {
 				if(ret.length) {
 					ret = ret[0..($-1)];
-					if(cur.x) {
-						mvaddch(cur.y, cur.x-1,' ');
-						move(cur.y,cur.x-1);
-					} else {
-						mvaddch(cur.y-1, max.x,' ');
-						move(cur.y-1,max.x);
+					if(tmpecho) {
+						if(cur.x) {
+							move(cur.y, cur.x-1);
+							delch();
+						} else {
+							move(cur.y-1, max.x);
+							delch();
+						}
 					}
 				}
 			} else {
 				ret ~= cast(char)buf;
-				addch(cast(char)buf);
+				if(tmpecho) {
+					addch(cast(char)buf);
+				}
 			}
 		}
 		return ret.dup;
 	}
-	C[] getstr(C:CharType)(int maxlen) {
+	char[] getstr(int maxlen) {
 		// We know the max length
 		char[] ret = new char[maxlen];
 		if(nc.getnstr(ret.ptr,maxlen) == nc.OK) {
@@ -334,6 +393,15 @@ public:
 	}
 	auto erase() {
 		return nc.werase(m_raw);
+	}
+	auto clear() {
+		return nc.wclear(m_raw);
+	}
+	auto clrtobot() {
+		return nc.wclrtobot(m_raw);
+	}
+	auto clrtoeol() {
+		return nc.wclrtoeol(m_raw);
 	}
 
 
@@ -366,10 +434,10 @@ public:
 	int hline(C:CharType)(C ch, int n) {
 		return nc.whline(m_raw, ch, n);
 	}
+	mixin MoveWrapper!"hline";
 	int vline(C:CharType)(C ch, int n) {
 		return nc.wvline(m_raw, ch, n);
 	}
-	mixin MoveWrapper!"hline";
 	mixin MoveWrapper!"vline";
 
 
@@ -385,11 +453,24 @@ public:
 	}
 }
 
+/**
+ * Create an audio beep
+ */
+alias nc.beep beep;
+/**
+ * Create a visual "bell"
+ */
+alias nc.flash flash;
+
+alias nc.killchar killchar;
+alias nc.erasechar erasechar;
+
 // Wrap the original ncurses implementations
 public Window stdwin;
 auto initscr() {
 	 // Call library initscr and bind our standard window
 	stdwin = new Window(nc.initscr());
+	echo(true);
 	return stdwin;
 }
 auto endwin() {
