@@ -113,28 +113,12 @@ void mode(Mode r, ubyte delay = 0) {
 	if(r & currMode) {
 		return;
 	}
-	with(Mode)
-	final switch(currMode) {
-		case Cooked: {
-			// Do nothing
-			break;
-		}
-		case CBreak:
-		case HalfDelay: {
-			nc.nocbreak();
-			break;
-		}
-		case Raw: {
-			nc.noraw();
-			break;
-		}
-	}
+	nc.nocbreak();
 
 	with(Mode)
 	final switch(r) {
 		case Cooked: {
 			nc.noraw();
-			nc.nocbreak();
 			break;
 		}
 		case CBreak: {
@@ -245,8 +229,9 @@ public:
 	 * @param lcols The number of columns for the window
 	 * @param y0 The number of the first row that the window uses
 	 * @param x0 The number of the first column that the window uses
+	 * @param ptype Absolute or relative positioning of subwindow
 	 */
-	this(Window myParent, int nlines, int ncols, int y0, int x0)
+	this(Window myParent, int nlines, int ncols, int y0, int x0, Positioning ptype = Positioning.Absolute)
 	in {
 		assert(0 <= y0 && y0 < nc.getmaxy(nc.stdscr));
 		assert(0 <= x0 && x0 < nc.getmaxx(nc.stdscr));
@@ -256,7 +241,11 @@ public:
 	}
 	body {
 		m_parent = myParent;
-		m_raw = nc.newwin(nlines,ncols,y0,x0);
+		if(ptype == Positioning.Absolute) {
+			m_raw = nc.subwin(m_parent.m_raw, nlines,ncols,y0,x0);
+		} else {
+			m_raw = nc.derwin(m_parent.m_raw, nlines,ncols,y0,x0);
+		}
 	}
 
 	@property Window parent() {
@@ -403,12 +392,24 @@ public:
 	auto clrtoeol() {
 		return nc.wclrtoeol(m_raw);
 	}
+	auto touch() {
+		return nc.touchwin(m_raw);
+	}
+	auto touch(int start, int count) {
+		return nc.touchline(m_raw, start, count);
+	}
+	auto sync() {
+		return nc.wsyncup(m_raw);
+	}
+	auto syncok(bool isOk) {
+		return nc.syncok(m_raw, isOk);
+	}
 
 
 	// Movement and X/Y
 	auto move(int y, int x) {
 		if(nc.wmove(m_raw,y,x)==nc.ERR) {
-			throw new NCursesError("Could not move to correct location");
+			throw new NCursesError("Could not move cursor to correct location");
 		}
 	}
 
@@ -416,6 +417,13 @@ public:
 	mixin Coord!"beg";
 	mixin Coord!"max";
 	mixin Coord!"par";
+
+	// Move window
+	auto movewin(int y, int x) {
+		if(nc.mvderwin(m_raw, y, x) == nc.ERR) {
+			throw new NCursesError("Could not move window to correct location");
+		}
+	}
 
 
 	// Border and graphics
