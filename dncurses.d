@@ -1,39 +1,63 @@
+/** @file dncurses.d
+	@brief D ncurses class wrappers
+	@authors Matthew Soucy <msoucy@csh.rit.edu>
+	@date Nov 12, 2012
+	@version 0.0.1
+*/
+///D ncurses class wrappers
 module metus.dncurses.dncurses;
 
+
+/// @cond NoDoc
 import std.c.string : strlen;
 import std.string : toStringz, format, toUpper;
 import std.algorithm;
-
 private import nc = deimos.ncurses.ncurses;
 
+// Character type from Deimos
 alias nc.chtype CharType;
+/// @endcond
 
+/** @brief Get the ncurses version
+
+	@return The version number as a string
+*/
 char[] ncurses_version() {
 	char* ver = nc.curses_version();
 	return ver[0..strlen(ver)];
 }
 
-/** @brief ZMQ error class
-Automatically gets the latest ZMQ error
+/** @brief Ncurses error class
+
+	Base class for all errors related to dncurses
 */
 class NCursesError : Error {
 public:
-	/**
-	 * Create and automatically initialize an NCursesError
-	 */
+	/** @brief Create and automatically initialize an NCursesError
+		
+		@param _msg The error message
+		@param file The file that the error is being thrown in
+		@param line The line that the error is being thrown on
+	*/
     this (string _msg, string file=__FILE__, int line=__LINE__) {
     	super(_msg, file, line);
 	}
 };
 
+/** @brief Color wrapper
+
+	Wraps color lookup calls in an OOP structure
+*/
 struct Color {
 	@disable this();
+	/// Map color values to their deimos ncurses names
 	template opDispatch(string key)
 	{
 		enum opDispatch = mixin("nc.COLOR_"~key.toUpper());
 	}
 }
 
+/// @cond NoDoc
 static if(0)
 immutable enum Attribute : CharType {
 	/// Normal display (no highlight)
@@ -72,45 +96,97 @@ immutable enum Attribute : CharType {
 	Vertical = nc.A_VERTICAL,
 	// @}
 }
+/// @endcond
 
+///Flags for windows
 immutable enum Flag {
-	subwin = 0x01, /* is this a sub-window? */
-    endline = 0x02, /* is the window flush right? */
-    fullwin = 0x04, /* is the window full-screen? */
-    scrollwin = 0x08, /* bottom edge is at screen bottom? */
-    ispad = 0x10, /* is this window a pad? */
-    hasmoved = 0x20, /* has cursor moved since last refresh? */
-    wrapped = 0x40 /* cursor was just wrappped */
+	/// Is this a sub-window?
+	subwin = 0x01,
+    /// Is the window flush right?
+    endline = 0x02,
+    /// Is the window full-screen?
+    fullwin = 0x04,
+    /// Bottom edge is at screen bottom?
+    scrollwin = 0x08,
+    /// Is this window a pad?
+    ispad = 0x10,
+    /// Has cursor moved since last refresh?
+    hasmoved = 0x20,
+    /// Cursor was just wrappped
+    wrapped = 0x40
 }
-private static bool isEcho;
 
-auto echo(bool echoon) {
+/// @cond NoDoc
+// Stores whether ncurses is in echo mode or not
+private static bool isEcho;
+/// @endcond
+
+
+/** @brief Get echo mode
+
+	@return The current echo mode
+*/
+@property auto echo() {
+	return isEcho;
+}
+/** @brief Change echo mode
+
+	@param echoOn Whether echo should be enabled
+	@return The old echo mode
+*/
+@property auto echo(bool echoOn) {
 	bool currEcho = isEcho;
-	if(((isEcho=echoon)==true ? nc.echo() : nc.noecho()) == nc.ERR) {
+	if(((isEcho=echoOn)==true ? nc.echo() : nc.noecho()) == nc.ERR) {
 		throw new NCursesError("Could not change echo mode");
 	}
 	return currEcho;
 }
 
-auto qiflush(bool flush) {
-	return (flush?nc.qiflush():nc.noqiflush());
+
+/** @brief Control flush of input and output on interrupt
+
+	Control flushing of input and output queues when an interrupt, quit,
+	or suspend character is sent to the terminal.
+	
+	@param shouldFlush Enable (true) or disable (false) flushing
+*/
+@property void qiflush(bool shouldFlush) {
+	if(shouldFlush) {
+		nc.qiflush();
+	} else {
+		nc.noqiflush();
+	}
 }
 
-auto intrflush(bool shouldFlush) {
+/** @brief Control flush of output on interrupt
+
+	If the value of shouldFlush is TRUE, then flushing of the output buffer
+	associated with the current screen will occur when an interrupt key
+	(interrupt, suspend, or quit) is pressed.If the value of shouldFlush is
+	FALSE, then no flushing of the buffer will occur when an interrupt key
+	is pressed.
+	
+	@param shouldFlush Enable (true) or disable (false) flushing
+*/
+@property void intrflush(bool shouldFlush) {
 	// nc.intrflush ignores the window parameter...
-	return nc.intrflush(nc.stdscr,shouldFlush);
+	if(nc.intrflush(nc.stdscr, shouldFlush) == nc.ERR) {
+		throw new NCursesError("Could not change flush behavior");
+	}
 }
 
+
+/// @cond NoDoc
 immutable enum Mode {
-	Cooked = 0,
-	CBreak = 1<<0,
-	Raw = 1<<1,
-	HalfDelay = CBreak|(1<<2),
+	Cooked,
+	CBreak,
+	Raw,
+	HalfDelay,
 }
-private static Mode currMode=Mode.Cooked; // Why did I have this default to raw?
 
+private static Mode currMode=Mode.Cooked;
 void mode(Mode r, ubyte delay = 0) {
-	if(r & currMode) {
+	if(r == currMode) {
 		return;
 	}
 	nc.nocbreak();
@@ -141,9 +217,15 @@ void mode(Mode r, ubyte delay = 0) {
 	}
 	currMode = r;
 }
+/// @endcond
 
+/** @brief Key name wrapper
+
+Allows the use of Key.NAME instead of KEY_NAME, which makes it nicer to use
+*/
 struct Key {
 	@disable this();
+	/// Map key names to their deimos values
 	template opDispatch(string key)
 	{
 		static if(key.toUpper()[0] == 'F' && key.length > 1 && (key[1]>'0'&&key[1]<='9')) {
@@ -154,8 +236,11 @@ struct Key {
 	}
 }
 
+/// Positioning style for subwindow creation
 enum Positioning {
+	/// Windows are created relative to the parent window
 	Relative,
+	/// Windows are created relative to the screen
 	Absolute
 }
 
@@ -272,7 +357,7 @@ public:
 	 *
 	 * @param fmt The format specifier
 	 */
-	auto printf(T...)(string fmt, T d) {
+	void printf(T...)(string fmt, T d) {
 		string ret = format(fmt, d);
 		if(nc.waddstr(m_raw, ret.toStringz()) == nc.ERR) {
 			throw new NCursesError("Error printing string");
@@ -284,7 +369,7 @@ public:
 	 *
 	 * @param c The character (and attributes) to put
 	 */
-	auto addch(C:CharType)(C c) {
+	void addch(C:CharType)(C c) {
 		if(nc.waddch(m_raw, c) == nc.ERR) {
 			throw new NCursesError("Error adding a character");
 		}
@@ -293,7 +378,7 @@ public:
 
 	/** Delete the character under the cursor
 	 */
-	auto delch() {
+	void delch() {
 		if(nc.wdelch(m_raw) == nc.ERR) {
 			throw new NCursesError("Error deleting a character");
 		}
@@ -304,7 +389,7 @@ public:
 	 *
 	 * @param str The string to put
 	 */
-	auto addstr(string str) {
+	void addstr(string str) {
 		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
 			throw new NCursesError("Error adding string");
 		}
@@ -408,7 +493,7 @@ public:
 
 	// Movement and X/Y
 	auto move(int y, int x) {
-		if(nc.wmove(m_raw,y,x)==nc.ERR) {
+		if(nc.wmove(m_raw,y,x) == nc.ERR) {
 			throw new NCursesError("Could not move cursor to correct location");
 		}
 	}
@@ -461,26 +546,49 @@ public:
 	}
 }
 
-/**
- * Create an audio beep
- */
-alias nc.beep beep;
-/**
- * Create a visual "bell"
- */
-alias nc.flash flash;
+/// @cond NoDoc
+/** @brief Standard window
 
+	Equivalent to ncurses' stdscr
+*/
+public Window stdwin;
+/// @endcond
+
+/// Create an audio beep
+void beep() {
+	nc.beep();
+}
+/// Create a visual flash as a "bell"
+void flash() {
+	nc.flash();
+}
+
+/// @cond NoDoc
 alias nc.killchar killchar;
 alias nc.erasechar erasechar;
+/// @endcond
+
 
 // Wrap the original ncurses implementations
-public Window stdwin;
+/** @brief Initialize the screen
+
+	Creates stdwin and forces echo to be true
+	@return stdwin
+*/
 auto initscr() {
 	 // Call library initscr and bind our standard window
 	stdwin = new Window(nc.initscr());
-	echo(true);
+	echo = true;
 	return stdwin;
 }
-auto endwin() {
-	return nc.endwin();
+/** @brief End all windows
+
+	Cleans up the library and leaves ncurses mode
+	@return 
+*/
+void endwin() {
+	stdwin = null;
+	if(nc.endwin() == nc.ERR) {
+		throw new NCursesError("Could not end window properly");
+	}
 }
