@@ -9,14 +9,9 @@ module metus.dncurses.dncurses;
 
 
 /// @cond NoDoc
-import std.c.string : strlen;
-import std.string : toStringz, format, toUpper;
-import std.algorithm;
+import std.string : toUpper, strlen;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.window;
-
-// Character type from Deimos
-alias nc.chtype CharType;
 /// @endcond
 
 /** @brief Get the ncurses version
@@ -39,15 +34,6 @@ struct Color {
 	{
 		enum opDispatch = mixin("nc.COLOR_"~key.toUpper());
 	}
-}
-
-/// Create an audio beep
-void beep() {
-	nc.beep();
-}
-/// Create a visual flash as a "bell"
-void flash() {
-	nc.flash();
 }
 
 

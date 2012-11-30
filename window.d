@@ -9,15 +9,14 @@ module metus.dncurses.window;
 
 
 /// @cond NoDoc
-import std.string : toStringz, format, toUpper;
-import std.algorithm;
+import std.string : toStringz, xformat, strlen;
+import std.algorithm : canFind;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.base;
 /// @endcond
 
 
-/// @cond NoDoc
-static if(0)
+/// Character attributes
 immutable enum Attribute : CharType {
 	/// Normal display (no highlight)
 	Normal = nc.A_NORMAL,
@@ -55,7 +54,6 @@ immutable enum Attribute : CharType {
 	Vertical = nc.A_VERTICAL,
 	/// @}
 }
-/// @endcond
 
 /// Flags for windows
 immutable enum Flag {
@@ -78,9 +76,9 @@ immutable enum Flag {
 
 /// Positioning style for subwindow creation
 enum Positioning {
-	/// Windows are created relative to the parent window
+	/// Windows are created with coordinates relative to the parent window
 	Relative,
-	/// Windows are created relative to the screen
+	/// Windows are created with coordinates relative to the screen
 	Absolute
 }
 
@@ -104,7 +102,8 @@ private:
 					this.y = _y;
 				}
 			}
-			return mixin("Pos(nc.get"~name~"y(m_raw), nc.get"~name~"x(m_raw))");
+			//return mixin("Pos(nc.get"~name~"y(m_raw), nc.get"~name~"x(m_raw))");
+			return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 		}
 		mixin("alias Coord "~name~";");
 	}
@@ -116,6 +115,28 @@ private:
 		}
 		mixin("alias MoveWrapper mv"~Func~";");
 	}
+
+	struct AttributeHandler {
+	private:
+		Window outer;
+		CharType internal;
+		void apply() {
+			if(nc.wattrset(this.outer.m_raw, internal) == nc.ERR) {
+				throw new NCursesException("Could not set attributes");
+			}
+		}
+	public:
+		this(Window w) {
+			outer=w;
+		}
+		AttributeHandler opAssign(CharType newattrs) {
+			internal = newattrs;
+			apply();
+			return this;
+		}
+	}
+
+	AttributeHandler attributes;
 
 package:
 	/**
@@ -199,7 +220,7 @@ public:
 	 * @param fmt The format specifier
 	 */
 	void printf(T...)(string fmt, T d) {
-		string ret = format(fmt, d);
+		string ret = xformat(fmt, d);
 		if(nc.waddstr(m_raw, ret.toStringz()) == nc.ERR) {
 			throw new NCursesException("Error printing string");
 		}
@@ -288,12 +309,12 @@ public:
 		}
 		return ret.dup;
 	}
-	char[] getstr(int maxlen) {
+	string getstr(int maxlen) {
 		// We know the max length
 		char[] ret = new char[maxlen];
 		if(nc.getnstr(ret.ptr,maxlen) == nc.OK) {
 			// All good!
-			return ret.dup;
+			return ret[0..strlen(ret.ptr)].idup;
 		} else {
 			// Something's wrong
 			throw new NCursesException("Error receiving input");
@@ -353,36 +374,41 @@ public:
 
 
 	// Border and graphics
-	int border()() {
+	int border() {
 		return nc.wborder(m_raw, 0, 0, 0, 0, 0, 0, 0, 0);
 	}
-	int border(C:CharType)(C ls, C rs, C ts, C bs,
-		C tl = cast(C)0, C tr = cast(C)0, C bl = cast(C)0, C br = cast(C)0)
+	int border(CharType ls, CharType rs, CharType ts, CharType bs,
+		CharType tl = cast(CharType)0, CharType tr = cast(CharType)0,
+		CharType bl = cast(CharType)0, CharType br = cast(CharType)0)
 	{
 		return nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br);
 	}
-	int box(C:CharType)(C verch, C horch)
+	int box(CharType verch, CharType horch)
 	{
 		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
 	}
-	int hline(C:CharType)(C ch, int n) {
+	int hline(CharType ch, int n) {
 		return nc.whline(m_raw, ch, n);
 	}
 	mixin MoveWrapper!"hline";
-	int vline(C:CharType)(C ch, int n) {
+	int vline(CharType ch, int n) {
 		return nc.wvline(m_raw, ch, n);
 	}
 	mixin MoveWrapper!"vline";
 
 
 	// Attributes
-	auto attron(N:CharType)(N attrs) {
-		return nc.wattron(m_raw, attrs);
-	}
-	auto attroff(N:CharType)(N attrs) {
-		return nc.wattroff(m_raw, attrs);
-	}
-	auto attrset(N:CharType)(N attrs) {
-		return nc.wattron(m_raw, attrs);
+	static if(0) {
+		auto attron(CharType attrs) {
+			return nc.wattron(m_raw, attrs);
+		}
+		auto attroff(CharType attrs) {
+			return nc.wattroff(m_raw, attrs);
+		}
+		auto attrset(CharType attrs) {
+			return nc.wattron(m_raw, attrs);
+		}
+	} else {
+		@property auto attr() { return attributes; }
 	}
 }
