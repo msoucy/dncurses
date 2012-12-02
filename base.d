@@ -90,49 +90,44 @@ private static bool isEcho;
 	}
 }
 
-
-/// @cond NoDoc
-immutable enum Mode {
-	Cooked,
-	CBreak,
-	Raw,
-	HalfDelay,
+/// Character attributes
+immutable enum Attribute : CharType {
+	/// Normal display (no highlight)
+	Normal = nc.A_NORMAL,
+	/// Bit-mask to get the attributes of a character
+	Attributes = nc.A_ATTRIBUTES,
+	/// Bit-mask to extract a character
+	Chartext = nc.A_CHARTEXT,
+	/// Bit-mask to extract a color
+	Color = nc.A_COLOR,
+	/// Best highlighting mode of the terminal
+	Standout = nc.A_STANDOUT,
+	/// Underlining
+	Underline = nc.A_UNDERLINE,
+	/// Reverse video
+	Reverse = nc.A_REVERSE,
+	/// Blinking
+	Blink = nc.A_BLINK,
+	/// Half bright
+	Dim = nc.A_DIM,
+	/// Extra bright or bold
+	Bold = nc.A_BOLD,
+	/// Bit-mask for alternate character set
+	AltCharset = nc.A_ALTCHARSET,
+	/// Invisible or blank mode
+	Invis = nc.A_INVIS,
+	/// Protected mode
+	Protect = nc.A_PROTECT,
+	/// XSI extra conformance standard
+	/// @{
+	Horizontal = nc.A_HORIZONTAL,
+	Left = nc.A_LEFT,
+	Low = nc.A_LOW,
+	Right = nc.A_RIGHT,
+	Top = nc.A_TOP,
+	Vertical = nc.A_VERTICAL,
+	/// @}
 }
-
-private static Mode currMode=Mode.Cooked;
-void mode(Mode r, ubyte delay = 0) {
-	if(r == currMode) {
-		return;
-	}
-	nc.nocbreak();
-
-	with(Mode)
-	final switch(r) {
-		case Cooked: {
-			nc.noraw();
-			break;
-		}
-		case CBreak: {
-			nc.cbreak();
-			break;
-		}
-		case HalfDelay: {
-			if(delay != 0) {
-				// They overrode the default value
-				nc.halfdelay(delay);
-			} else {
-				throw new NCursesException("Invalid halfdelay time");
-			}
-			break;
-		}
-		case Raw: {
-			nc.raw();
-			break;
-		}
-	}
-	currMode = r;
-}
-/// @endcond
 
 /** @brief Key name wrapper
 
@@ -148,6 +143,19 @@ struct Key {
 		} else {
 			enum opDispatch = mixin("nc.KEY_"~key.toUpper());
 		}
+	}
+}
+
+/** @brief ACS name wrapper
+
+Allows the use of ACS.name instead of ACS_NAME,
+which makes it nicer to use alternative character sets
+*/
+struct ACS {
+	@disable this();
+	/// Map key names to their deimos values
+	static @property CharType opDispatch(string key)() {
+		return mixin("nc.ACS_"~key.toUpper()~"()");
 	}
 }
 

@@ -12,6 +12,7 @@ module metus.dncurses.dncurses;
 import std.string : toUpper, strlen;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.window;
+public import metus.dncurses.mode;
 /// @endcond
 
 /** @brief Get the ncurses version

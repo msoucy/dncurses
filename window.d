@@ -16,64 +16,6 @@ public import metus.dncurses.base;
 /// @endcond
 
 
-/// Character attributes
-immutable enum Attribute : CharType {
-	/// Normal display (no highlight)
-	Normal = nc.A_NORMAL,
-	/// Bit-mask to get the attributes of a character
-	Attributes = nc.A_ATTRIBUTES,
-	/// Bit-mask to extract a character
-	Chartext = nc.A_CHARTEXT,
-	/// Bit-mask to extract a color
-	Color = nc.A_COLOR,
-	/// Best highlighting mode of the terminal
-	Standout = nc.A_STANDOUT,
-	/// Underlining
-	Underline = nc.A_UNDERLINE,
-	/// Reverse video
-	Reverse = nc.A_REVERSE,
-	/// Blinking
-	Blink = nc.A_BLINK,
-	/// Half bright
-	Dim = nc.A_DIM,
-	/// Extra bright or bold
-	Bold = nc.A_BOLD,
-	/// Bit-mask for alternate character set
-	AltCharset = nc.A_ALTCHARSET,
-	/// Invisible or blank mode
-	Invis = nc.A_INVIS,
-	/// Protected mode
-	Protect = nc.A_PROTECT,
-	/// XSI extra conformance standard
-	/// @{
-	Horizontal = nc.A_HORIZONTAL,
-	Left = nc.A_LEFT,
-	Low = nc.A_LOW,
-	Right = nc.A_RIGHT,
-	Top = nc.A_TOP,
-	Vertical = nc.A_VERTICAL,
-	/// @}
-}
-
-/// Flags for windows
-immutable enum Flag {
-	/// Is this a sub-window?
-	subwin = 0x01,
-    /// Is the window flush right?
-    endline = 0x02,
-    /// Is the window full-screen?
-    fullwin = 0x04,
-    /// Bottom edge is at screen bottom?
-    scrollwin = 0x08,
-    /// Is this window a pad?
-    ispad = 0x10,
-    /// Has cursor moved since last refresh?
-    hasmoved = 0x20,
-    /// Cursor was just wrappped
-    wrapped = 0x40
-}
-
-
 /// Positioning style for subwindow creation
 enum Positioning {
 	/// Windows are created with coordinates relative to the parent window
@@ -102,7 +44,6 @@ private:
 					this.y = _y;
 				}
 			}
-			//return mixin("Pos(nc.get"~name~"y(m_raw), nc.get"~name~"x(m_raw))");
 			return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 		}
 		mixin("alias Coord "~name~";");
@@ -116,24 +57,34 @@ private:
 		mixin("alias MoveWrapper mv"~Func~";");
 	}
 
-	struct AttributeHandler {
+	class AttributeHandler {
 	private:
 		Window outer;
-		CharType internal;
 		void apply() {
-			if(nc.wattrset(this.outer.m_raw, internal) == nc.ERR) {
+			if(nc.wattrset(this.outer.m_raw, outer.m_raw.attrs) == nc.ERR) {
 				throw new NCursesException("Could not set attributes");
 			}
+		}
+		@property CharType get() {
+			return outer.m_raw.attrs;
 		}
 	public:
 		this(Window w) {
 			outer=w;
 		}
 		AttributeHandler opAssign(CharType newattrs) {
-			internal = newattrs;
+			outer.m_raw.attrs = newattrs;
 			apply();
 			return this;
 		}
+		AttributeHandler opOpAssign(string op)(CharType newattrs)
+		if(["|=","&="].canFind(op)) {
+			mixin("outer.m_raw.attrs "~op~" newattrs;");
+			apply();
+			return this;
+		}
+
+		alias get this;
 	}
 
 	AttributeHandler attributes;
@@ -231,7 +182,7 @@ public:
 	 *
 	 * @param c The character (and attributes) to put
 	 */
-	void addch(C:CharType)(C c) {
+	void addch(CharType c) {
 		if(nc.waddch(m_raw, c) == nc.ERR) {
 			throw new NCursesException("Error adding a character");
 		}
@@ -398,17 +349,24 @@ public:
 
 
 	// Attributes
-	static if(0) {
-		auto attron(CharType attrs) {
-			return nc.wattron(m_raw, attrs);
+	@property ref attr() {
+		if(attributes is null) {
+			attributes = new AttributeHandler(this);
 		}
-		auto attroff(CharType attrs) {
-			return nc.wattroff(m_raw, attrs);
-		}
-		auto attrset(CharType attrs) {
-			return nc.wattron(m_raw, attrs);
-		}
-	} else {
-		@property auto attr() { return attributes; }
+		return attributes;
 	}
+
+	// Flags
+	/// Is this a sub-window?
+	@property bool subwin() {return (m_raw.flags & nc._SUBWIN) != 0;}
+	/// Is the window flush right?
+	@property bool endline() {return (m_raw.flags & nc._ENDLINE) != 0;}
+	/// Is the window full-screen?
+	@property bool fullwin() {return (m_raw.flags & nc._FULLWIN) != 0;}
+	/// Bottom edge is at screen bottom?
+	@property bool scrollwin() {return (m_raw.flags & nc._SCROLLWIN) != 0;}
+	/// Has cursor moved since last refresh?
+	@property bool hasmoved() {return (m_raw.flags & nc._HASMOVED) != 0;}
+	/// Cursor was just wrappped
+	@property bool wrapped() {return (m_raw.flags & nc._WRAPPED) != 0;}
 }
