@@ -18,7 +18,7 @@ private import nc = deimos.ncurses.ncurses;
 
 private interface Mode {
 private:
-	void apply() {}
+	auto apply() {return nc.ERR;}
 public:
 	string toString();
 }
@@ -32,11 +32,11 @@ enum ClearFlags {
 class Cooked : Mode {
 private:
 	ClearFlags m_cf;
-	void apply() {
+	auto apply() {
 		if(m_cf == ClearFlags.Yes) {
-			nc.noraw();
+			return nc.noraw();
 		} else {
-			nc.nocbreak();
+			return nc.nocbreak();
 		}
 	}
 	this(ClearFlags cf) {
@@ -57,8 +57,8 @@ public:
 
 class CBreak : Mode {
 private:
-	void apply() {
-		nc.cbreak();
+	auto apply() {
+		return nc.cbreak();
 	}
 	this() {}
 public:
@@ -73,8 +73,8 @@ public:
 class HalfDelay : Mode {
 private:
 	ubyte m_tenths;
-	void apply() {
-		nc.halfdelay(m_tenths);
+	auto apply() {
+		return nc.halfdelay(m_tenths);
 	}
 	this(ubyte tenths) {}
 public:
@@ -91,8 +91,8 @@ public:
 
 class Raw : Mode {
 private:
-	void apply() {
-		nc.raw();
+	auto apply() {
+		return nc.raw();
 	}
 	this() {}
 public:
@@ -110,7 +110,9 @@ private static Mode currMode;
 public:
 
 @property void mode(Mode m) {
-	m.apply();
+	if(m.apply() == nc.ERR) {
+		throw new NCursesException("Could not change mode");
+	}
 	currMode = m;
 }
 

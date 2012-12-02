@@ -10,6 +10,7 @@ module metus.dncurses.base;
 
 /// @cond NoDoc
 import std.string : toUpper;
+import std.stdio : File;
 private import nc = deimos.ncurses.ncurses;
 
 // Character type from Deimos
@@ -166,6 +167,13 @@ void beep() {
 /// Create a visual flash as a "bell"
 void flash() {
 	nc.flash();
+}
+
+/// Set the file descriptor to use for typeahead
+void typeahead(File fd) {
+	if(nc.typeahead(fd.fileno()) == nc.ERR) {
+		throw new NCursesException("Could not set typeahead variable");
+	}
 }
 
 /// @cond NoDoc

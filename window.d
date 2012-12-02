@@ -30,6 +30,7 @@ enum Positioning {
 class Window {
 private:
 	Window m_parent = null;
+	Window[] m_children = [];
 	nc.WINDOW* m_raw;
 	bool currKeypad=false;
 	bool currMeta = false;
@@ -139,6 +140,7 @@ public:
 	}
 	body {
 		m_parent = myParent;
+		m_parent.m_children ~= this;
 		if(ptype == Positioning.Absolute) {
 			m_raw = nc.subwin(m_parent.m_raw, nlines,ncols,y0,x0);
 		} else {
@@ -148,6 +150,18 @@ public:
 
 	@property Window parent() {
 		return m_parent;
+	}
+
+	@property Window dup() {
+		return new Window(nc.dupwin(m_raw));
+	}
+
+	void delwin() {
+		foreach(c;m_children) {
+			c.delwin();
+		}
+		nc.delwin(m_raw);
+		m_raw = null;
 	}
 
 	auto nodelay(bool bf) {
@@ -325,10 +339,8 @@ public:
 
 
 	// Border and graphics
-	int border() {
-		return nc.wborder(m_raw, 0, 0, 0, 0, 0, 0, 0, 0);
-	}
-	int border(CharType ls, CharType rs, CharType ts, CharType bs,
+	int border(CharType ls = cast(CharType)0, CharType rs = cast(CharType)0,
+		CharType ts = cast(CharType)0, CharType bs = cast(CharType)0,
 		CharType tl = cast(CharType)0, CharType tr = cast(CharType)0,
 		CharType bl = cast(CharType)0, CharType br = cast(CharType)0)
 	{
