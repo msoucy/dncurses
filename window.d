@@ -11,6 +11,7 @@ module metus.dncurses.window;
 /// @cond NoDoc
 import std.string : toStringz, xformat, strlen;
 import std.algorithm : canFind;
+import std.conv : to;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.base;
 public import metus.dncurses.attrstring;
@@ -217,27 +218,31 @@ public:
 	}
 	mixin MoveWrapper!"addstr";
 
-	auto put()(string str) {
+
+	//
+	auto put(T:string)(T str) {
 		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
 			throw new NCursesException("Error adding string");
 		}
 		return this;
 	}
-	auto put()(CharType c) {
+	auto put(T:CharType)(T c) {
 		if(nc.waddch(m_raw, c) == nc.ERR) {
 			throw new NCursesException("Error adding a character");
 		}
 		return this;
 	}
-	auto put()(Pos p) {
+	auto put(T:Pos)(T p) {
 		if(nc.wmove(m_raw, p.y, p.x) == nc.ERR) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 		return this;
 	}
-	auto put()(AttributeString str) {
+	auto put(T:AttributeString)(T str) {
 		nc.attr_t oldAttr = m_raw.attrs;
-		if(nc.wattrset(this.m_raw, str.attr) == nc.ERR) {
+		if(nc.wattron(this.m_raw, str.attr) == nc.ERR) {
+			throw new NCursesException("Could not set attributes");
+		} else if(nc.wattroff(this.m_raw, str.noattr) == nc.ERR) {
 			throw new NCursesException("Could not set attributes");
 		}
 		if(nc.waddstr(this.m_raw, str.str.toStringz()) == nc.ERR) {
@@ -248,6 +253,10 @@ public:
 		}
 		return this;
 	}
+	auto put(T)(T t) {
+		this.put(t.to!string());
+		return this;
+	}
 	auto put(T...)(T t) {
 		foreach(val;t) {
 			this.put(val);
@@ -255,6 +264,8 @@ public:
 		return this;
 	}
 	alias put print;
+
+
 
 
 	// Input
