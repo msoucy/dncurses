@@ -13,6 +13,7 @@ import std.string : toStringz, xformat, strlen;
 import std.algorithm : canFind;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.base;
+public import metus.dncurses.attrstring;
 /// @endcond
 
 
@@ -38,13 +39,6 @@ private:
 	// Handle coordinate functions
 	mixin template Coord(string name) {
 		@property auto Coord() {
-			struct Pos {
-				immutable int x,y;
-				this(int _y, int _x) {
-					this.x = _x;
-					this.y = _y;
-				}
-			}
 			return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 		}
 		mixin("alias Coord "~name~";");
@@ -222,6 +216,45 @@ public:
 		}
 	}
 	mixin MoveWrapper!"addstr";
+
+	auto put()(string str) {
+		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
+			throw new NCursesException("Error adding string");
+		}
+		return this;
+	}
+	auto put()(CharType c) {
+		if(nc.waddch(m_raw, c) == nc.ERR) {
+			throw new NCursesException("Error adding a character");
+		}
+		return this;
+	}
+	auto put()(Pos p) {
+		if(nc.wmove(m_raw, p.y, p.x) == nc.ERR) {
+			throw new NCursesException("Could not move cursor to correct location");
+		}
+		return this;
+	}
+	auto put()(AttributeString str) {
+		nc.attr_t oldAttr = m_raw.attrs;
+		if(nc.wattrset(this.m_raw, str.attr) == nc.ERR) {
+			throw new NCursesException("Could not set attributes");
+		}
+		if(nc.waddstr(this.m_raw, str.str.toStringz()) == nc.ERR) {
+			throw new NCursesException("Error adding string");
+		}
+		if(nc.wattrset(this.m_raw, oldAttr) == nc.ERR) {
+			throw new NCursesException("Could not set attributes");
+		}
+		return this;
+	}
+	auto put(T...)(T t) {
+		foreach(val;t) {
+			this.put(val);
+		}
+		return this;
+	}
+	alias put print;
 
 
 	// Input
