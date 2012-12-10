@@ -240,9 +240,7 @@ public:
 	}
 	auto put(T:AttributeString)(T str) {
 		nc.attr_t oldAttr = m_raw.attrs;
-		if(nc.wattron(this.m_raw, str.attr) == nc.ERR) {
-			throw new NCursesException("Could not set attributes");
-		} else if(nc.wattroff(this.m_raw, str.noattr) == nc.ERR) {
+		if(nc.wattrset(this.m_raw, (str.attr|this.m_raw.attrs)&~str.noattr) == nc.ERR) {
 			throw new NCursesException("Could not set attributes");
 		}
 		if(nc.waddstr(this.m_raw, str.str.toStringz()) == nc.ERR) {

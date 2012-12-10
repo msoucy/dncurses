@@ -16,21 +16,8 @@ public import metus.dncurses.window;
 /// @endcond
 
 
-/// Character attributes
-static if(0)
-immutable enum Attribute : nc.attr_t {
-	/// Bit-mask to get the attributes of a character
-	Attributes = nc.A_ATTRIBUTES,
-	/// Bit-mask to extract a character
-	Chartext = nc.A_CHARTEXT,
-	/// Bit-mask to extract a color
-	Color = nc.A_COLOR,
-	/// Bit-mask for alternate character set
-	AltCharset = nc.A_ALTCHARSET,
-}
-
 package struct AttributeString {
-private:
+package:
 	nc.attr_t m_attr;
 	nc.attr_t m_noattr;
 	string m_str;
