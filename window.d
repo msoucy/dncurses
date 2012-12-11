@@ -26,6 +26,28 @@ enum Positioning {
 	Absolute
 }
 
+struct hline {
+private:
+	CharType m_char;
+	int m_n;
+public:
+	this(CharType ch, int n) {
+		m_char = ch;
+		m_n = n;
+	}
+}
+
+struct vline {
+private:
+	CharType m_char;
+	int m_n;
+public:
+	this(CharType ch, int n) {
+		m_char = ch;
+		m_n = n;
+	}
+}
+
 
 /** @brief Window wrapper
  */
@@ -175,29 +197,6 @@ public:
 
 	// Output
 
-	/** Print to a window with printf functionality
-	 *
-	 * @param fmt The format specifier
-	 */
-	void printf(T...)(string fmt, T d) {
-		string ret = xformat(fmt, d);
-		if(nc.waddstr(m_raw, ret.toStringz()) == nc.ERR) {
-			throw new NCursesException("Error printing string");
-		}
-	}
-	mixin MoveWrapper!"printf";
-
-	/** Put a character at the current position on the window
-	 *
-	 * @param c The character (and attributes) to put
-	 */
-	void addch(CharType c) {
-		if(nc.waddch(m_raw, c) == nc.ERR) {
-			throw new NCursesException("Error adding a character");
-		}
-	}
-	mixin MoveWrapper!"addch";
-
 	/** Delete the character under the cursor
 	 */
 	void delch() {
@@ -206,17 +205,6 @@ public:
 		}
 	}
 	mixin MoveWrapper!"delch";
-
-	/** Put a string at the current position on the window
-	 *
-	 * @param str The string to put
-	 */
-	void addstr(string str) {
-		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
-			throw new NCursesException("Error adding string");
-		}
-	}
-	mixin MoveWrapper!"addstr";
 
 
 	//
@@ -249,6 +237,16 @@ public:
 		if(nc.wattrset(this.m_raw, oldAttr) == nc.ERR) {
 			throw new NCursesException("Could not set attributes");
 		}
+		return this;
+	}
+	auto put(T:hline)(T line) {
+		// ncurses doesn't do error handling for this
+		nc.whline(m_raw, line.m_char, line.m_n);
+		return this;
+	}
+	auto put(T:vline)(T line) {
+		// ncurses doesn't do error handling for this
+		nc.wvline(m_raw, line.m_char, line.m_n);
 		return this;
 	}
 	auto put(T)(T t) {
@@ -310,7 +308,7 @@ public:
 			} else {
 				ret ~= cast(char)buf;
 				if(tmpecho) {
-					addch(cast(char)buf);
+					put(cast(char)buf);
 				}
 			}
 		}
@@ -392,14 +390,6 @@ public:
 	{
 		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
 	}
-	int hline(CharType ch, int n) {
-		return nc.whline(m_raw, ch, n);
-	}
-	mixin MoveWrapper!"hline";
-	int vline(CharType ch, int n) {
-		return nc.wvline(m_raw, ch, n);
-	}
-	mixin MoveWrapper!"vline";
 
 
 	// Attributes
