@@ -12,7 +12,6 @@ module metus.dncurses.attrstring;
 import std.string : toStringz, toUpper;
 private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.base;
-public import metus.dncurses.window;
 /// @endcond
 
 
@@ -34,10 +33,16 @@ public:
 	@property string str() {
 		return m_str;
 	}
-	// Overload ~, but not if one has nc.A_ALTCHARSET and the other doesn't
 	alias m_str this;
-	// Disable this, as it's a logical nightmare
+	// Overload AttrString~String and vice-versa
+	// Disable this for now, until I figure out what cases are allowed
 	@disable opBinary(string s:"~")(AttributeString);
+}
+
+private interface TextAttribute {
+public:
+	void apply(nc.WINDOW*);
+	void unapply(nc.WINDOW*);
 }
 
 mixin template AttributeProperty(string name, string realname=name) {
@@ -64,8 +69,20 @@ mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	// Just provide the property
-	@property CharType AttributeProperty() {
-		return mixin("nc.A_"~realname.toUpper());
+	@property TextAttribute AttributeProperty() {
+		class Attribute : TextAttribute {
+			void apply(nc.WINDOW* win) {
+				if(nc.wattron(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+					throw new NCursesException("Could not set attributes");
+				}
+			}
+			void unapply(nc.WINDOW* win) {
+				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+					throw new NCursesException("Could not set attributes");
+				}
+			}
+		}
+		return new Attribute();
 	}
 
 	mixin("alias AttributeProperty "~name~";");

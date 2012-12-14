@@ -75,38 +75,6 @@ private:
 		mixin("alias MoveWrapper mv"~Func~";");
 	}
 
-	class AttributeHandler {
-	private:
-		Window outer;
-		void apply() {
-			if(nc.wattrset(this.outer.m_raw, outer.m_raw.attrs) == nc.ERR) {
-				throw new NCursesException("Could not set attributes");
-			}
-		}
-		@property CharType get() {
-			return outer.m_raw.attrs;
-		}
-	public:
-		this(Window w) {
-			outer=w;
-		}
-		AttributeHandler opAssign(CharType newattrs) {
-			outer.m_raw.attrs = newattrs;
-			apply();
-			return this;
-		}
-		AttributeHandler opOpAssign(string op)(CharType newattrs)
-		if(["|=","&="].canFind(op)) {
-			mixin("outer.m_raw.attrs "~op~" newattrs;");
-			apply();
-			return this;
-		}
-
-		alias get this;
-	}
-
-	AttributeHandler attributes;
-
 package:
 	/**
 	 * Constructor from a C-style window
@@ -214,12 +182,6 @@ public:
 		}
 		return this;
 	}
-	auto put(T:CharType)(T c) {
-		if(nc.waddch(m_raw, c) == nc.ERR) {
-			throw new NCursesException("Error adding a character");
-		}
-		return this;
-	}
 	auto put(T:Pos)(T p) {
 		if(nc.wmove(m_raw, p.y, p.x) == nc.ERR) {
 			throw new NCursesException("Could not move cursor to correct location");
@@ -247,6 +209,10 @@ public:
 	auto put(T:vline)(T line) {
 		// ncurses doesn't do error handling for this
 		nc.wvline(m_raw, line.m_char, line.m_n);
+		return this;
+	}
+	auto put(T:TextAttribute)(T attr) {
+		attr.apply(m_raw);
 		return this;
 	}
 	auto put(T)(T t) {
@@ -389,15 +355,6 @@ public:
 	int box(CharType verch, CharType horch)
 	{
 		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
-	}
-
-
-	// Attributes
-	@property ref attr() {
-		if(attributes is null) {
-			attributes = new AttributeHandler(this);
-		}
-		return attributes;
 	}
 
 	// Flags
