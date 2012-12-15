@@ -9,10 +9,8 @@ module metus.dncurses.mode;
 
 
 /// @cond NoDoc
-import std.string : toUpper;
 import std.conv : to;
 import metus.dncurses.base;
-private import nc = deimos.ncurses.ncurses;
 /// @endcond
 
 

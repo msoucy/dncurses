@@ -11,7 +11,7 @@ module metus.dncurses.base;
 /// @cond NoDoc
 import std.string : toUpper;
 import std.stdio : File;
-private import nc = deimos.ncurses.ncurses;
+package import nc = deimos.ncurses.ncurses;
 
 // Character type from Deimos
 alias nc.chtype CharType;
@@ -42,7 +42,7 @@ private static bool isEcho;
 
 	@return The current echo mode
 */
-@property auto echo() {
+@safe @property nothrow auto echo() {
 	return isEcho;
 }
 /** @brief Change echo mode
@@ -50,7 +50,7 @@ private static bool isEcho;
 	@param echoOn Whether echo should be enabled
 	@return The old echo mode
 */
-@property auto echo(bool echoOn) {
+@trusted @property auto echo(bool echoOn) {
 	bool currEcho = isEcho;
 	if(((isEcho=echoOn)==true ? nc.echo() : nc.noecho()) == nc.ERR) {
 		throw new NCursesException("Could not change echo mode");
@@ -66,7 +66,7 @@ private static bool isEcho;
 	
 	@param shouldFlush Enable (true) or disable (false) flushing
 */
-@property void qiflush(bool shouldFlush) {
+@trusted @property void qiflush(bool shouldFlush) {
 	if(shouldFlush) {
 		nc.qiflush();
 	} else {
@@ -84,7 +84,7 @@ private static bool isEcho;
 	
 	@param shouldFlush Enable (true) or disable (false) flushing
 */
-@property void intrflush(bool shouldFlush) {
+@trusted @property void intrflush(bool shouldFlush) {
 	// nc.intrflush ignores the window parameter...
 	if(nc.intrflush(nc.stdscr, shouldFlush) == nc.ERR) {
 		throw new NCursesException("Could not change flush behavior");
@@ -116,30 +116,30 @@ which makes it nicer to use alternative character sets
 struct ACS {
 	@disable this();
 	/// Map key names to their deimos values
-	static @property CharType opDispatch(string key)() {
+	static @system nothrow @property CharType opDispatch(string key)() {
 		return mixin("nc.ACS_"~key.toUpper()~"()");
 	}
 }
 
 struct Pos {
 	immutable int x,y;
-	this(int _y, int _x) {
+	nothrow this(int _y, int _x) {
 		this.x = _x;
 		this.y = _y;
 	}
 }
 
 /// Create an audio beep
-void beep() {
+@trusted void beep() {
 	nc.beep();
 }
 /// Create a visual flash as a "bell"
-void flash() {
+@trusted void flash() {
 	nc.flash();
 }
 
 /// Set the file descriptor to use for typeahead
-void typeahead(File fd) {
+@trusted void typeahead(File fd) {
 	if(nc.typeahead(fd.fileno()) == nc.ERR) {
 		throw new NCursesException("Could not set typeahead variable");
 	}

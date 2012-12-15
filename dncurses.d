@@ -10,7 +10,6 @@ module metus.dncurses.dncurses;
 
 /// @cond NoDoc
 import std.string : toUpper, strlen;
-private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.window;
 public import metus.dncurses.mode;
 /// @endcond
@@ -19,7 +18,7 @@ public import metus.dncurses.mode;
 
 	@return The version number as a string
 */
-char[] ncurses_version() {
+@trusted char[] ncurses_version() {
 	char* ver = nc.curses_version();
 	return ver[0..strlen(ver)];
 }
@@ -51,7 +50,7 @@ public Window stdwin;
 	Creates stdwin and forces echo to be true
 	@return stdwin
 */
-auto initscr() {
+@trusted auto initscr() {
 	 // Call library initscr and bind our standard window
 	stdwin = new Window(nc.initscr());
 	echo = true;
@@ -62,7 +61,7 @@ auto initscr() {
 	Cleans up the library and leaves ncurses mode
 	@return 
 */
-void endwin() {
+ @trusted void endwin() {
 	stdwin = null;
 	if(nc.endwin() == nc.ERR) {
 		throw new NCursesException("Could not end window properly");

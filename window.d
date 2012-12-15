@@ -9,10 +9,9 @@ module metus.dncurses.window;
 
 
 /// @cond NoDoc
-import std.string : toStringz, xformat, strlen;
+import std.string : strlen, toStringz;
 import std.algorithm : canFind;
 import std.conv : to;
-private import nc = deimos.ncurses.ncurses;
 public import metus.dncurses.base;
 public import metus.dncurses.attrstring;
 /// @endcond
@@ -31,7 +30,7 @@ private:
 	CharType m_char;
 	int m_n;
 public:
-	this(CharType ch, int n) {
+	nothrow this(CharType ch, int n) {
 		m_char = ch;
 		m_n = n;
 	}
@@ -42,7 +41,7 @@ private:
 	CharType m_char;
 	int m_n;
 public:
-	this(CharType ch, int n) {
+	nothrow this(CharType ch, int n) {
 		m_char = ch;
 		m_n = n;
 	}
@@ -61,7 +60,7 @@ private:
 
 	// Handle coordinate functions
 	mixin template Coord(string name) {
-		@property auto Coord() {
+		@property @trusted nothrow auto Coord() const {
 			return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 		}
 		mixin("alias Coord "~name~";");
@@ -117,8 +116,8 @@ public:
 	 */
 	this(Window myParent, int nlines, int ncols, int y0, int x0, Positioning ptype = Positioning.Absolute)
 	in {
-		assert(0 <= y0 && y0 < nc.getmaxy(nc.stdscr));
-		assert(0 <= x0 && x0 < nc.getmaxx(nc.stdscr));
+		assert(0 <= y0 && y0 <= nc.getmaxy(nc.stdscr));
+		assert(0 <= x0 && x0 <= nc.getmaxx(nc.stdscr));
 	}
 	out {
 		assert(m_raw);
@@ -175,7 +174,7 @@ public:
 	mixin MoveWrapper!"delch";
 
 
-	//
+	// Output functions
 	auto put(T:string)(T str) {
 		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
 			throw new NCursesException("Error adding string");
@@ -359,15 +358,15 @@ public:
 
 	// Flags
 	/// Is this a sub-window?
-	@property bool subwin() {return (m_raw.flags & nc._SUBWIN) != 0;}
+	@property @safe nothrow bool subwin() const {return (m_raw.flags & nc._SUBWIN) != 0;}
 	/// Is the window flush right?
-	@property bool endline() {return (m_raw.flags & nc._ENDLINE) != 0;}
+	@property @safe nothrow bool endline() const {return (m_raw.flags & nc._ENDLINE) != 0;}
 	/// Is the window full-screen?
-	@property bool fullwin() {return (m_raw.flags & nc._FULLWIN) != 0;}
+	@property @safe nothrow bool fullwin() const {return (m_raw.flags & nc._FULLWIN) != 0;}
 	/// Bottom edge is at screen bottom?
-	@property bool scrollwin() {return (m_raw.flags & nc._SCROLLWIN) != 0;}
+	@property @safe nothrow bool scrollwin() const {return (m_raw.flags & nc._SCROLLWIN) != 0;}
 	/// Has cursor moved since last refresh?
-	@property bool hasmoved() {return (m_raw.flags & nc._HASMOVED) != 0;}
+	@property @safe nothrow bool hasmoved() const {return (m_raw.flags & nc._HASMOVED) != 0;}
 	/// Cursor was just wrappped
-	@property bool wrapped() {return (m_raw.flags & nc._WRAPPED) != 0;}
+	@property @safe nothrow bool wrapped() const {return (m_raw.flags & nc._WRAPPED) != 0;}
 }
