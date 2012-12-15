@@ -68,7 +68,7 @@ mixin template AttributeProperty(string name, string realname=name) {
 		return ret;
 	}
 
-	// Just provide the property
+	// Enable a property
 	@property TextAttribute AttributeProperty() {
 		class Attribute : TextAttribute {
 			void apply(nc.WINDOW* win) {
@@ -86,6 +86,25 @@ mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	mixin("alias AttributeProperty "~name~";");
+
+	// Disable a property
+	@property TextAttribute NoAttributeProperty() {
+		class Attribute : TextAttribute {
+			void apply(nc.WINDOW* win) {
+				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+					throw new NCursesException("Could not set attributes");
+				}
+			}
+			void unapply(nc.WINDOW* win) {
+				if(nc.wattron(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+					throw new NCursesException("Could not set attributes");
+				}
+			}
+		}
+		return new Attribute();
+	}
+
+	mixin("alias NoAttributeProperty no"~name~";");
 
 
 	// Remove a property from a string with attributes
