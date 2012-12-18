@@ -13,7 +13,7 @@ import std.string : strlen, toStringz;
 import std.algorithm : canFind;
 import std.conv : to;
 public import metus.dncurses.base;
-public import metus.dncurses.attrstring;
+public import metus.dncurses.formatting;
 /// @endcond
 
 
