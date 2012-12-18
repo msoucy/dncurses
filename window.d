@@ -227,6 +227,11 @@ public:
 	}
 	alias put print;
 
+	auto bkgd(TextAttribute attr) {
+		attr.bkgd(m_raw);
+		return this;
+	}
+
 
 
 

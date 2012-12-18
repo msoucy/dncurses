@@ -60,6 +60,7 @@ public:
 private interface TextAttribute {
 public:
 	void apply(nc.WINDOW*);
+	void bkgd(nc.WINDOW*);
 }
 
 mixin template AttributeProperty(string name, string realname=name) {
@@ -91,6 +92,9 @@ mixin template AttributeProperty(string name, string realname=name) {
 					throw new NCursesException("Could not set attributes");
 				}
 			}
+			@trusted void bkgd(nc.WINDOW* win) {
+				nc.wbkgdset(win, nc.getbkgd(win)|mixin("nc.A_"~realname.toUpper()));
+			}
 		};
 	}
 
@@ -103,6 +107,9 @@ mixin template AttributeProperty(string name, string realname=name) {
 				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
 					throw new NCursesException("Could not set attributes");
 				}
+			}
+			@trusted void bkgd(nc.WINDOW* win) {
+				nc.wbkgdset(win, nc.getbkgd(win)&~mixin("nc.A_"~realname.toUpper()));
 			}
 		};
 	}
@@ -144,6 +151,9 @@ mixin template AttributeProperty(string name, string realname=name) {
 			if(nc.wattrset(win, 0UL) == nc.ERR) {
 				throw new NCursesException("Could not set attributes");
 			}
+		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			nc.wbkgdset(win, 0UL);
 		}
 	};
 }
@@ -230,6 +240,9 @@ private short mkPairNum(ulong attrs) {
 				throw new NCursesException("Could not set foreground color");
 			}
 		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			nc.wbkgdset(win, (nc.getbkgd(win) & ~FG_MASK) | (c<<FG_SHIFT));
+		}
 	};
 }
 
@@ -254,6 +267,9 @@ private short mkPairNum(ulong attrs) {
 			if(nc.wcolor_set(win, pairnum, cast(void*)0) == nc.ERR) {
 				throw new NCursesException("Could not set foreground color");
 			}
+		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			nc.wbkgdset(win, nc.getbkgd(win) & ~FG_MASK);
 		}
 	};
 }
@@ -280,6 +296,9 @@ private short mkPairNum(ulong attrs) {
 				throw new NCursesException("Could not set foreground color");
 			}
 		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			nc.wbkgdset(win, (nc.getbkgd(win) & ~BG_MASK) | (c<<BG_SHIFT));
+		}
 	};
 }
 
@@ -305,5 +324,18 @@ private short mkPairNum(ulong attrs) {
 				throw new NCursesException("Could not set background color");
 			}
 		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			nc.wbkgdset(win, nc.getbkgd(win) & ~BG_MASK);
+		}
 	};
+}
+
+// Set colors on a string with attributes
+@safe pure nothrow AttributeString color(AttributeString str, short f, short b) {
+	return str.fg(f).bg(b);
+}
+
+// Set background color on a D string
+@safe pure nothrow AttributeString color(string str, short f, short b) {
+	return AttributeString(str).fg(f).bg(b);
 }
