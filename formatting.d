@@ -19,37 +19,38 @@ package:
 	nc.attr_t m_attr;
 	nc.attr_t m_noattr;
 	string m_str;
-	@safe nothrow this(string s) {
+public:
+	@safe pure nothrow this(string s) {
 		m_str = s;
 	}
-public:
-	@property nc.attr_t attr() {
+	@property @safe pure nothrow nc.attr_t attr() const {
 		return m_attr;
 	}
-	@property nc.attr_t noattr() {
+	@property @safe pure nothrow nc.attr_t attrDisable() const {
 		return m_noattr;
 	}
-	@property string str() {
+	@property @safe pure nothrow string str() const {
 		return m_str;
 	}
 	alias m_str this;
-	ref AttributeString opOpAssign(string op:"~")(string s) {
+
+	@property @safe pure nothrow ref AttributeString opOpAssign(string op:"~")(string s) {
 		this.m_str ~= s;
 		return this;
 	}
-	AttributeString opBinary(string op:"~")(string s) {
+	@property @safe pure nothrow AttributeString opBinary(string op:"~")(string s) const {
 		AttributeString ret = this;
 		ret ~= s;
 		return ret;
 	}
-	AttributeString opOpAssign(string op:"~")(AttributeString s) {
+	@property @safe pure nothrow AttributeString opOpAssign(string op:"~")(AttributeString s) {
 		if(this.m_attr != s.m_attr) {
 			throw new NCursesException("Cannot concatenate strings with different attributes");
 		}
 		this.m_str ~= s;
 		return this;
 	}
-	AttributeString opBinary(string op:"~")(AttributeString s) {
+	@property @safe pure nothrow AttributeString opBinary(string op:"~")(AttributeString s) const {
 		AttributeString ret = this;
 		ret ~= s;
 		return ret;
@@ -63,19 +64,19 @@ public:
 
 mixin template AttributeProperty(string name, string realname=name) {
 	// Add a property to a string with attributes
-	@property @safe nothrow AttributeString AttributeProperty(AttributeString str) {
+	@property @safe pure nothrow AttributeString AttributeProperty(AttributeString str) {
 		str.m_attr |= mixin("nc.A_"~realname.toUpper());
 		str.m_noattr &= ~mixin("nc.A_"~realname.toUpper());
 		return str;
 	}
 
 	// Add a property to a regular string
-	@property @safe nothrow AttributeString AttributeProperty(string str) {
+	@property @safe pure nothrow AttributeString AttributeProperty(string str) {
 		return mixin(`AttributeString(str).`~name~`()`);
 	}
 
 	// Turn a formatted character into a formatted string
-	@property @safe nothrow AttributeString AttributeProperty(nc.chtype ch) {
+	@property @safe pure nothrow AttributeString AttributeProperty(nc.chtype ch) {
 		AttributeString ret = "";
 		ret ~= ch & nc.A_CHARTEXT;
 		ret.m_attr = (ch & nc.A_ATTRIBUTES) | mixin("nc.A_"~realname.toUpper());
@@ -83,7 +84,7 @@ mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	// Enable a property
-	@property @safe nothrow TextAttribute AttributeProperty() {
+	@property @safe pure nothrow TextAttribute AttributeProperty() {
 		return new class TextAttribute {
 			@trusted void apply(nc.WINDOW* win) {
 				if(nc.wattron(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
@@ -96,7 +97,7 @@ mixin template AttributeProperty(string name, string realname=name) {
 	mixin("alias AttributeProperty "~name~";");
 
 	// Disable a property
-	@property @safe nothrow TextAttribute NoAttributeProperty() {
+	@property @safe pure nothrow TextAttribute NoAttributeProperty() {
 		return new class TextAttribute {
 			@trusted void apply(nc.WINDOW* win) {
 				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
@@ -110,14 +111,14 @@ mixin template AttributeProperty(string name, string realname=name) {
 
 
 	// Remove a property from a string with attributes
-	@property @safe nothrow AttributeString NoAttributeProperty(AttributeString str) {
+	@property @safe pure nothrow AttributeString NoAttributeProperty(AttributeString str) {
 		str.m_attr &= ~mixin("nc.A_"~realname.toUpper());
 		str.m_noattr |= mixin("nc.A_"~realname.toUpper());
 		return str;
 	}
 
 	// Remove a property from a string
-	@property @safe nothrow AttributeString NoAttributeProperty(string str) {
+	@property @safe pure nothrow AttributeString NoAttributeProperty(string str) {
 		AttributeString ret = str;
 		ret.m_noattr = mixin("nc.A_"~realname.toUpper());
 		return ret;
@@ -126,14 +127,25 @@ mixin template AttributeProperty(string name, string realname=name) {
 	mixin("alias NoAttributeProperty no"~name~";");
 
 
-	@property @safe nothrow bool CheckAttributeProperty(CharType ch) {
+	@property @safe pure nothrow bool CheckAttributeProperty(CharType ch) {
 		return (ch & mixin("nc.A_"~realname.toUpper())) != 0;
 	}
-	@property @safe nothrow bool CheckAttributeProperty(inout(AttributeString) str) {
+	@property @safe pure nothrow bool CheckAttributeProperty(inout(AttributeString) str) {
 		return (str.m_attr & mixin("nc.A_"~realname.toUpper())) != 0;
 	}
 
 	mixin("alias CheckAttributeProperty is"~name~";");
+}
+
+// Enable a property
+@property @safe pure nothrow TextAttribute attrclear() {
+	return new class TextAttribute {
+		@trusted void apply(nc.WINDOW* win) {
+			if(nc.wattrset(win, 0UL) == nc.ERR) {
+				throw new NCursesException("Could not set attributes");
+			}
+		}
+	};
 }
 
 mixin AttributeProperty!"standout";
@@ -156,7 +168,7 @@ mixin AttributeProperty!"vertical";
 ////////////////////////////////////////////////////////////////////////////////
 
 /* colors */
-immutable enum Color : nc.chtype
+immutable enum Color : short
 {
 	BLACK   = 0,
 	RED     = 1,
@@ -196,20 +208,45 @@ private short mkPairNum(ulong attrs) {
 }
 
 
+// Set foreground color on a string with attributes
+@property @safe pure nothrow AttributeString fg(AttributeString str, short c) {
+	str.m_noattr |= FG_MASK;
+	str.m_attr = (str.m_attr & ~FG_MASK) | (c<<FG_SHIFT);
+	return str;
+}
+
+// Set foreground color on a D string
+@property @safe pure nothrow AttributeString fg(string str, short c) {
+	return AttributeString(str).fg(c);
+}
+
+// Set foreground color
+@property @safe pure nothrow TextAttribute fg(short c) {
+	return new class TextAttribute {
+		@trusted void apply(nc.WINDOW* win) {
+			short pairnum = (mkPairNum(win.attrs) & 0b00111000) | c;
+
+			if(nc.wcolor_set(win, pairnum, cast(void*)0) == nc.ERR) {
+				throw new NCursesException("Could not set foreground color");
+			}
+		}
+	};
+}
+
 // Remove foreground color from a string with attributes
-@property @safe nothrow AttributeString nofg(AttributeString str) {
+@property @safe pure nothrow AttributeString nofg(AttributeString str) {
 	str.m_noattr |= FG_MASK;
 	str.m_attr &= ~FG_MASK;
 	return str;
 }
 
 // Remove foreground color from a regular string
-@property @safe nothrow AttributeString nofg(string str) {
+@property @safe pure nothrow AttributeString nofg(string str) {
 	return AttributeString(str).nofg();
 }
 
 // Remove foreground color
-@property @safe nothrow TextAttribute nofg() {
+@property @safe pure nothrow TextAttribute nofg() {
 	return new class TextAttribute {
 		@trusted void apply(nc.WINDOW* win) {
 			short pairnum = mkPairNum(win.attrs) & 0b00111000;
@@ -221,20 +258,45 @@ private short mkPairNum(ulong attrs) {
 	};
 }
 
+// Set background color on a string with attributes
+@property @safe pure nothrow AttributeString bg(AttributeString str, short c) {
+	str.m_noattr |= BG_MASK;
+	str.m_attr = (str.m_attr & ~BG_MASK) | (c<<BG_SHIFT);
+	return str;
+}
+
+// Set background color on a D string
+@property @safe pure nothrow AttributeString bg(string str, short c) {
+	return AttributeString(str).bg(c);
+}
+
+// Set background color
+@property @safe pure nothrow TextAttribute bg(short c) {
+	return new class TextAttribute {
+		@trusted void apply(nc.WINDOW* win) {
+			short pairnum = ((mkPairNum(win.attrs) & 0b00000111) | (c<<3)) & 0xFFFF;
+
+			if(nc.wcolor_set(win, pairnum, cast(void*)0) == nc.ERR) {
+				throw new NCursesException("Could not set foreground color");
+			}
+		}
+	};
+}
+
 // Remove background color from a string with attributes
-@property @safe nothrow AttributeString nobg(AttributeString str) {
+@property @safe pure nothrow AttributeString nobg(AttributeString str) {
 	str.m_noattr |= BG_MASK;
 	str.m_attr &= ~BG_MASK;
 	return str;
 }
 
 // Remove background color from a regular string
-@property @safe nothrow AttributeString nobg(string str) {
+@property @safe pure nothrow AttributeString nobg(string str) {
 	return AttributeString(str).nobg();
 }
 
 // Remove background color
-@property @safe nothrow TextAttribute nobg() {
+@property @safe pure nothrow TextAttribute nobg() {
 	return new class TextAttribute {
 		@trusted void apply(nc.WINDOW* win) {
 			short pairnum = mkPairNum(win.attrs) & 0b00000111;
@@ -245,5 +307,3 @@ private short mkPairNum(ulong attrs) {
 		}
 	};
 }
-
-alias nc.color_set colorSet;

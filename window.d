@@ -189,7 +189,8 @@ public:
 	}
 	auto put(T:AttributeString)(T str) {
 		nc.attr_t oldAttr = m_raw.attrs;
-		if(nc.wattrset(this.m_raw, (str.attr|this.m_raw.attrs)&~str.noattr) == nc.ERR) {
+		nc.attr_t newAttr = ((str.attr|this.m_raw.attrs)&~str.attrDisable) | (str.attr & str.attrDisable & nc.A_COLOR);
+		if(nc.wattrset(this.m_raw, newAttr) == nc.ERR) {
 			throw new NCursesException("Could not set attributes");
 		}
 		if(nc.waddstr(this.m_raw, str.str.toStringz()) == nc.ERR) {
