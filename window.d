@@ -148,16 +148,16 @@ public:
 		m_raw = null;
 	}
 
-	auto nodelay(bool bf) {
+	@property auto nodelay(bool bf) {
 		return nc.nodelay(m_raw,bf);
 	}
-	auto timeout(int delay) {
+	@property auto timeout(int delay) {
 		return nc.wtimeout(m_raw,delay);
 	}
-	auto keypad(bool enabled) {
+	@property auto keypad(bool enabled) {
 		return nc.keypad(m_raw,(currKeypad=enabled));
 	}
-	auto meta(bool enabled) {
+	@property auto meta(bool enabled) {
 		return nc.meta(m_raw,(currMeta=enabled));
 	}
 
@@ -227,8 +227,14 @@ public:
 	}
 	alias put print;
 
-	auto bkgd(TextAttribute attr) {
+	auto bkgd(T:TextAttribute)(T attr) {
 		attr.bkgd(m_raw);
+		return this;
+	}
+	auto bkgd(T...)(T t) {
+		foreach(val;t) {
+			this.bkgd(val);
+		}
 		return this;
 	}
 
@@ -326,6 +332,11 @@ public:
 	}
 	auto syncok(bool isOk) {
 		return nc.syncok(m_raw, isOk);
+	}
+
+	// Modifiers
+	@property void scrollok(bool isOk) {
+		nc.scrollok(m_raw, isOk);
 	}
 
 

@@ -43,9 +43,9 @@ private:
 public:
 	override string toString() {
 		if(m_cf == ClearFlags.Yes) {
-			return "Cooked(Flags set)";
+			return "Cooked(Clear)";
 		} else {
-			return "Cooked(Flags not set)";
+			return "Cooked(NoClear)";
 		}
 	}
 	static Cooked opCall(ClearFlags cf = ClearFlags.No) {
@@ -119,5 +119,5 @@ public:
 }
 
 static this() {
-	currMode=Cooked(ClearFlags.No);
+	currMode = Cooked(ClearFlags.No);
 }
