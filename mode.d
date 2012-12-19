@@ -14,11 +14,11 @@ import metus.dncurses.base;
 /// @endcond
 
 
-private interface Mode {
-private:
-	auto apply() {return nc.ERR;}
-public:
-	string toString();
+private abstract class Mode {
+protected:
+	int apply() {
+		throw new NCursesException("Mode is undefined");
+	}
 }
 
 
@@ -27,10 +27,10 @@ enum ClearFlags {
 	Yes
 }
 
-class Cooked : Mode {
-private:
+final class Cooked : Mode {
+protected:
 	ClearFlags m_cf;
-	auto apply() {
+	override int apply() {
 		if(m_cf == ClearFlags.Yes) {
 			return nc.noraw();
 		} else {
@@ -53,9 +53,9 @@ public:
 	}
 }
 
-class CBreak : Mode {
-private:
-	auto apply() {
+final class CBreak : Mode {
+protected:
+	override int apply() {
 		return nc.cbreak();
 	}
 	this() {}
@@ -68,10 +68,10 @@ public:
 	}
 }
 
-class HalfDelay : Mode {
-private:
+final class HalfDelay : Mode {
+protected:
 	ubyte m_tenths;
-	auto apply() {
+	override int apply() {
 		return nc.halfdelay(m_tenths);
 	}
 	this(ubyte tenths) {}
@@ -87,9 +87,9 @@ public:
 	}
 }
 
-class Raw : Mode {
-private:
-	auto apply() {
+final class Raw : Mode {
+protected:
+	override int apply() {
 		return nc.raw();
 	}
 	this() {}
@@ -105,11 +105,9 @@ public:
 private static Mode currMode;
 
 
-public:
-
 @property void mode(Mode m) {
-	if(m.apply() == nc.ERR) {
-		throw new NCursesException("Could not change mode");
+	if(m is null || m.apply() == nc.ERR) {
+		throw new NCursesException("Could not change to mode: "~m.to!string());
 	}
 	currMode = m;
 }
