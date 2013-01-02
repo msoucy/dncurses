@@ -27,80 +27,71 @@ enum ClearFlags {
 	Yes
 }
 
-final class Cooked : Mode {
-protected:
-	ClearFlags m_cf;
-	override int apply() {
-		if(m_cf == ClearFlags.Yes) {
-			return nc.noraw();
-		} else {
-			return nc.nocbreak();
+Mode Cooked(ClearFlags cf = ClearFlags.No) {
+	return new class Mode {
+	protected:
+		override int apply() {
+			if(cf == ClearFlags.Yes) {
+				return nc.noraw();
+			} else {
+				return nc.nocbreak();
+			}
 		}
-	}
-	this(ClearFlags cf) {
-		m_cf = cf;
-	}
-public:
-	override string toString() {
-		if(m_cf == ClearFlags.Yes) {
-			return "Cooked(Clear)";
-		} else {
-			return "Cooked(NoClear)";
+	public:
+		override string toString() {
+			if(cf == ClearFlags.Yes) {
+				return "Cooked(Clear)";
+			} else {
+				return "Cooked(NoClear)";
+			}
 		}
-	}
-	static Cooked opCall(ClearFlags cf = ClearFlags.No) {
-		return new Cooked(cf);
-	}
+	};
 }
 
-final class CBreak : Mode {
-protected:
-	override int apply() {
-		return nc.cbreak();
-	}
-	this() {}
-public:
-	override string toString() {
-		return "CBreak";
-	}
-	static CBreak opCall() {
-		return new CBreak();
-	}
-}
-
-final class HalfDelay : Mode {
-protected:
-	ubyte m_tenths;
-	override int apply() {
-		return nc.halfdelay(m_tenths);
-	}
-	this(ubyte tenths) {}
-public:
-	override string toString() {
-		return "Cooked("~m_tenths.to!string()~")";
-	}
-	static HalfDelay opCall(ubyte tenths) {
-		if(tenths == 0) {
-			throw new NCursesException("Cannot have a halfdelay of 0");
+Mode CBreak() {
+	return new class Mode {
+	protected:
+		override int apply() {
+			return nc.cbreak();
 		}
-		return new HalfDelay(tenths);
-	}
+		this() {}
+	public:
+		override string toString() {
+			return "CBreak";
+		}
+	};
 }
 
-final class Raw : Mode {
-protected:
-	override int apply() {
-		return nc.raw();
+
+Mode HalfDelay(ubyte tenths) {
+	if(tenths == 0) {
+		throw new NCursesException("Cannot have a halfdelay of 0");
 	}
-	this() {}
-public:
-	override string toString() {
-		return "Raw";
-	}
-	static Raw opCall() {
-		return new Raw();
-	}
+	return new class Mode {
+	protected:
+		override int apply() {
+			return nc.halfdelay(tenths);
+		}
+	public:
+		override string toString() {
+			return "Cooked("~tenths.to!string()~")";
+		}
+	};
 }
+
+Mode Raw() {
+	return new class Mode {
+	protected:
+		override int apply() {
+			return nc.raw();
+		}
+	public:
+		override string toString() {
+			return "Raw";
+		}
+	};
+}
+
 
 private static Mode currMode;
 

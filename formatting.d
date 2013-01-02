@@ -57,7 +57,7 @@ public:
 	}
 }
 
-private interface TextAttribute {
+package interface TextAttribute {
 public:
 	void apply(nc.WINDOW*);
 	void bkgd(nc.WINDOW*);
