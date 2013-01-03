@@ -23,18 +23,6 @@ public import metus.dncurses.mode;
 	return ver[0..strlen(ver)];
 }
 
-/** @brief Color wrapper
-
-	Wraps color lookup calls in an OOP structure
-*/
-struct Color {
-	@disable this();
-	/// Map color values to their deimos ncurses names
-	template opDispatch(string key)
-	{
-		enum opDispatch = mixin("nc.COLOR_"~key.toUpper());
-	}
-}
 
 
 /** @brief Standard window

@@ -25,28 +25,6 @@ enum Positioning {
 	Absolute
 }
 
-struct hline {
-private:
-	CharType m_char;
-	int m_n;
-public:
-	nothrow this(CharType ch, int n) {
-		m_char = ch;
-		m_n = n;
-	}
-}
-
-struct vline {
-private:
-	CharType m_char;
-	int m_n;
-public:
-	nothrow this(CharType ch, int n) {
-		m_char = ch;
-		m_n = n;
-	}
-}
-
 
 /** @brief Window wrapper
  */
@@ -335,6 +313,12 @@ public:
 	}
 
 	// Modifiers
+	/** @brief Allow or disable scrolling
+
+		Tell the window whether it is allowed to scroll upon print
+
+		@param isOk Whether scrolling is allowed or not
+	*/
 	@property void scrollok(bool isOk) {
 		nc.scrollok(m_raw, isOk);
 	}
