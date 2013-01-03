@@ -7,19 +7,22 @@
 /// Structures and functions for attributes and formatting
 module metus.dncurses.formatting;
 
-
 /// @cond NoDoc
 import std.traits;
 public import metus.dncurses.base;
 /// @endcond
 
-/// Horizontal line structure
-struct hline {
+
+/** @brief Vertical line structure
+	
+	Records information about the length and character of the line
+*/
+struct vline {
 private:
 	CharType m_char;
 	int m_n;
 public:
-	/** @brief Create a horizontal line
+	/** @brief Create a vertical line
 
 		@param ch The character to use
 		@param n The length of the line (in characters)
@@ -30,13 +33,16 @@ public:
 	}
 }
 
-/// Vertical line structure
-struct vline {
+/** @brief Horizontal line structure
+	
+	Records information about the length and character of the line
+*/
+struct hline {
 private:
 	CharType m_char;
 	int m_n;
 public:
-	/** @brief Create a vertical line
+	/** @brief Create a horizontal line
 
 		@param ch The character to use
 		@param n The length of the line (in characters)
@@ -224,6 +230,7 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	};
 }
 
+/// @cond NoDoc
 mixin AttributeProperty!"standout"; ///< Creates standout attribute
 mixin AttributeProperty!"underline"; ///< Creates underline attribute
 mixin AttributeProperty!("invert","reverse"); ///< Creates reversed attribute
@@ -238,6 +245,7 @@ mixin AttributeProperty!"low"; ///< Creates an extension attribute
 mixin AttributeProperty!"right"; ///< Creates an extension attribute
 mixin AttributeProperty!"top"; ///< Creates an extension attribute
 mixin AttributeProperty!"vertical"; ///< Creates an extension attribute
+/// @endcond
 
 ////////////////////////////////////////////////////////////////////////////////
 // Colors
@@ -256,10 +264,12 @@ immutable enum Color : short
 	WHITE   = 7
 }
 
-private enum FG_SHIFT = 8;
-private enum FG_MASK = 0b00000000_00000000_00000111_00000000UL;
-private enum BG_SHIFT = 11;
-private enum BG_MASK = 0b00000000_00000000_00111000_00000000UL;
+private {
+	enum FG_SHIFT = 8;
+	enum FG_MASK = 0b00000000_00000000_00000111_00000000UL;
+	enum BG_SHIFT = 11;
+	enum BG_MASK = 0b00000000_00000000_00111000_00000000UL;
+}
 
 /** @brief Detect color support
 
@@ -293,10 +303,12 @@ private short mkPairNum(ulong attrs) {
 }
 
 
-/** @brief Set foreground color
-
-	Set foreground color on a string with attributes
-
+/** @name Set foreground color
+	@param str The string to apply the color to
+	@param c The color to apply to the foreground
+@{
+*/
+/** @brief Set foreground color on a string
 	@param str The string to apply the color to
 	@param c The color to apply
 	@return An attribute string with the new foreground applied
@@ -307,10 +319,7 @@ private short mkPairNum(ulong attrs) {
 	return str;
 }
 
-/** @brief Set foreground color
-
-	Set foreground color on a D string
-
+/** @brief Set foreground color on a string
 	@param str The string to apply the color to
 	@param c The color to apply
 	@return An attribute string with the new foreground applied
@@ -319,10 +328,7 @@ private short mkPairNum(ulong attrs) {
 	return AttributeString(str).fg(c);
 }
 
-/** @brief Set foreground color
-
-	Set foreground color on a window
-
+/** @brief Set foreground color on a window
 	@param c The color to apply
 	@return A text attribute object that the window evaluates
 */
@@ -340,11 +346,12 @@ private short mkPairNum(ulong attrs) {
 		}
 	};
 }
+/// @}
 
-/** @brief Remove foreground color
-
-	Remove foreground color from a string with attributes
-
+/** @name Remove background color
+@{
+*/
+/** @brief Remove foreground color from a string
 	@param str The string to remove the color from
 	@return An attribute string with the foreground removed
 */
@@ -354,10 +361,7 @@ private short mkPairNum(ulong attrs) {
 	return str;
 }
 
-/** @brief Remove foreground color
-
-	Remove foreground color from a D string
-
+/** @brief Remove foreground color from a string
 	@param str The string to remove the color from
 	@return An attribute string with the foreground removed
 */
@@ -365,10 +369,7 @@ private short mkPairNum(ulong attrs) {
 	return AttributeString(str).nofg();
 }
 
-/** @brief Remove foreground color
-
-	Remove foreground color from a window
-
+/** @brief Remove foreground color from a window
 	@return A text attribute object that the window evaluates
 */
 @property @safe pure nothrow TextAttribute nofg() {
@@ -385,11 +386,14 @@ private short mkPairNum(ulong attrs) {
 		}
 	};
 }
+/// @}
 
-/** @brief Set background color
-
-	Set background color on a string with attributes
-
+/** @name Set background color
+	@param str The string to apply the color to
+	@param c The color to apply to the background
+@{
+*/
+/** @brief Set background color on a string
 	@param str The string to apply the color to
 	@param c The color to apply
 	@return An attribute string with the new background applied
@@ -400,22 +404,16 @@ private short mkPairNum(ulong attrs) {
 	return str;
 }
 
-/** @brief Set background color
-
-	Set background color on a D string
-
+/** @brief Set background color on a string
 	@param str The string to apply the color to
-	@param c The color to apply
+	@param c The color to apply to the background
 	@return An attribute string with the new background applied
 */
 @property @safe pure nothrow AttributeString bg(string str, short c) {
 	return AttributeString(str).bg(c);
 }
 
-/** @brief Set background color
-
-	Set background color on a window
-
+/** @brief Set background color on a window
 	@param c The color to apply
 	@return A text attribute object that the window evaluates
 */
@@ -433,11 +431,12 @@ private short mkPairNum(ulong attrs) {
 		}
 	};
 }
+/// @}
 
-/** @brief Remove background color
-
-	Remove background color from a string with attributes
-
+/** @name Remove background color
+@{
+*/
+/** @brief  Removes background color from a string
 	@param str The string to remove the color from
 	@return An attribute string with the background removed
 */
@@ -447,10 +446,7 @@ private short mkPairNum(ulong attrs) {
 	return str;
 }
 
-/** @brief Remove background color
-
-	Remove background color from a D string
-
+/** @brief  Removes background color from a string
 	@param str The string to remove the color from
 	@return An attribute string with the background removed
 */
@@ -458,10 +454,7 @@ private short mkPairNum(ulong attrs) {
 	return AttributeString(str).nobg();
 }
 
-/** @brief Remove background color
-
-	Remove background color from a window
-
+/** @brief Remove background color from a window
 	@return A text attribute object that the window evaluates
 */
 @property @safe pure nothrow TextAttribute nobg() {
@@ -478,29 +471,21 @@ private short mkPairNum(ulong attrs) {
 		}
 	};
 }
+/// @}
 
-/** @brief Set colors
-
-	Set colors on a string with attributes
-
+/** @name Set colors on a string
 	@param str The string to apply the color to
 	@param f The color to apply to the foreground
 	@param b The color to apply to the background
-	@return An attribute string with the colors applied
-*/
+	@return An AttributeString with the colors applied
+ @{
+ */
+
 @safe pure nothrow AttributeString color(AttributeString str, short f, short b) {
 	return str.fg(f).bg(b);
 }
-
-/** @brief Set colors
-
-	Set colors on a D string
-
-	@param str The string to apply the color to
-	@param f The color to apply to the foreground
-	@param b The color to apply to the background
-	@return An attribute string with the colors applied
-*/
 @safe pure nothrow AttributeString color(string str, short f, short b) {
 	return AttributeString(str).fg(f).bg(b);
 }
+
+/// @}
