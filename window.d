@@ -192,16 +192,6 @@ class Window {
 		}
 		return this;
 	}
-	auto put(T:hline)(T line) {
-		// ncurses doesn't do error handling for this
-		nc.whline(m_raw, line.m_char, line.m_n);
-		return this;
-	}
-	auto put(T:vline)(T line) {
-		// ncurses doesn't do error handling for this
-		nc.wvline(m_raw, line.m_char, line.m_n);
-		return this;
-	}
 	auto put(T:TextAttribute)(T attr) {
 		attr.apply(m_raw);
 		return this;
@@ -221,16 +211,23 @@ class Window {
 	alias put print;
 	/// @endcond
 
-	auto bkgd(T:TextAttribute)(T attr) {
-		attr.bkgd(m_raw);
-		return this;
-	}
-	auto bkgd(T...)(T t) {
-		foreach(val;t) {
-			this.bkgd(val);
+	/// @name Window background
+	/// @{
+	/** @fn bkgd(TextAttribute[] attr ...)
+	 * @brief Apply a set of attributes to the background of a window
+	 * @param attrs The attributes to apply
+	*/
+	auto bkgd(TextAttribute[] attrs ...) {
+		foreach(attr;attrs) {
+			attr.bkgd(m_raw);
 		}
 		return this;
 	}
+	auto bkgd(char c, TextAttribute[] attrs ...) {
+		nc.wbkgdset(m_raw, (nc.getbkgd(m_raw)&~nc.A_CHARTEXT)|c);
+		return bkgd(attrs);
+	}
+	/// @}
 
 
 
@@ -406,7 +403,9 @@ class Window {
 	void border(CharType ls = 0, CharType rs = 0, CharType ts = 0, CharType bs = 0,
 		CharType tl = 0, CharType tr = 0, CharType bl = 0, CharType br = 0)
 	{
-		return nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br);
+		if(nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br) != nc.OK) {
+			throw new NCursesException("Could not draw border");
+		}
 	}
 	/**
 	 * @brief Create a box around the current window
@@ -421,7 +420,9 @@ class Window {
 	*/
 	void box(CharType verch, CharType horch)
 	{
-		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
+		if(nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0) != nc.OK) {
+			throw new NCursesException("Could not draw box");
+		}
 	}
 	/// @}
 

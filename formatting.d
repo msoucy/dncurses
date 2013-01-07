@@ -13,44 +13,36 @@ public import metus.dncurses.base;
 /// @endcond
 
 
-/** @brief Vertical line structure
+/** @brief Create a vertical line
 	
-	Records information about the length and character of the line
+	@param ch The character to print
+	@param n The length of the line
 */
-struct vline {
-private:
-	CharType m_char;
-	int m_n;
-public:
-	/** @brief Create a vertical line
-
-		@param ch The character to use
-		@param n The length of the line (in characters)
-	*/
-	@safe nothrow this(CharType ch, int n) {
-		m_char = ch;
-		m_n = n;
-	}
+@safe pure nothrow TextAttribute vline(CharType ch, int n) {
+	return new class TextAttribute {
+		@trusted void apply(nc.WINDOW* win) {
+			nc.wvline(win, ch, n);
+		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			throw new NCursesException("Cannot put vline onto background");
+		}
+	};
 }
 
-/** @brief Horizontal line structure
+/** @brief Create a horizontal line
 	
-	Records information about the length and character of the line
+	@param ch The character to print
+	@param n The length of the line
 */
-struct hline {
-private:
-	CharType m_char;
-	int m_n;
-public:
-	/** @brief Create a horizontal line
-
-		@param ch The character to use
-		@param n The length of the line (in characters)
-	*/
-	@safe nothrow this(CharType ch, int n) {
-		m_char = ch;
-		m_n = n;
-	}
+@safe pure nothrow TextAttribute hline(CharType ch, int n) {
+	return new class TextAttribute {
+		@trusted void apply(nc.WINDOW* win) {
+			nc.whline(win, ch, n);
+		}
+		@trusted void bkgd(nc.WINDOW* win) {
+			throw new NCursesException("Cannot put hline onto background");
+		}
+	};
 }
 
 
