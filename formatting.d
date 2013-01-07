@@ -91,7 +91,6 @@ public:
 
 	/// @cond NoDoc
 	alias m_str this;
-	/// @endcond
 
 	/// Allow assignment concatenation with a string
 	@property @safe pure nothrow ref AttributeString opOpAssign(string op:"~")(string s) {
@@ -118,6 +117,7 @@ public:
 		ret ~= s;
 		return ret;
 	}
+	/// @endcond
 }
 
 /// Basic interface for Text Attributes

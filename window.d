@@ -17,7 +17,8 @@ public import metus.dncurses.formatting;
 /// @endcond
 
 
-/// Positioning style for subwindow creation
+/** @brief Positioning style for subwindow creation
+*/
 enum Positioning {
 	/// Windows are created with coordinates relative to the parent window
 	Relative,
@@ -29,43 +30,42 @@ enum Positioning {
 /** @brief Window wrapper
  */
 class Window {
-private:
-	Window m_parent = null;
-	Window[] m_children = [];
-	nc.WINDOW* m_raw;
-	bool currKeypad=false;
-	bool currMeta = false;
+	private {
+		Window m_parent = null;
+		Window[] m_children = [];
+		nc.WINDOW* m_raw;
+		bool currKeypad=false;
+		bool currMeta = false;
 
-	// Handle coordinate functions
-	mixin template Coord(string name) {
-		@property @trusted nothrow auto Coord() const {
-			return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
+		// Handle coordinate functions
+		mixin template Coord(string name) {
+			@property @trusted nothrow auto Coord() const {
+				return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
+			}
+			mixin("alias Coord "~name~";");
 		}
-		mixin("alias Coord "~name~";");
+
+		mixin template MoveWrapper(string Func) {
+			auto MoveWrapper(T...)(int y, int x, T t) {
+				this.move(y,x);
+				return mixin(Func~"(t)");
+			}
+			mixin("alias MoveWrapper mv"~Func~";");
+		}
 	}
 
-	mixin template MoveWrapper(string Func) {
-		auto MoveWrapper(T...)(int y, int x, T t) {
-			this.move(y,x);
-			return mixin(Func~"(t)");
-		}
-		mixin("alias MoveWrapper mv"~Func~";");
-	}
-
-package:
-	/**
-	 * Constructor from a C-style window
+	/// @cond NoDoc
+	/** Constructor from a C-style window
+	 * @param raw The base ncurses window to use
 	 */
-	this(nc.WINDOW* raw)
+	package this(nc.WINDOW* raw)
 	in {
 		assert(raw);
 	} body {
 		m_raw = raw;
 	}
 
-public:
 	/** Construct an ncurses Window
-	 *
 	 * @param nlines The number of lines for the window
 	 * @param lcols The number of columns for the window
 	 * @param y0 The number of the first row that the window uses
@@ -84,7 +84,6 @@ public:
 	}
 
 	/** Construct an ncurses Window
-	 *
 	 * @param myParent The parent window of the window to be created
 	 * @param nlines The number of lines for the window
 	 * @param lcols The number of columns for the window
@@ -109,15 +108,26 @@ public:
 			m_raw = nc.derwin(m_parent.m_raw, nlines,ncols,y0,x0);
 		}
 	}
+	/// @endcond
 
+	/** @brief Get the window's parent
+		@return The parent window of the current window
+	*/
 	@property Window parent() {
 		return m_parent;
 	}
 
+	/** @brief Duplicate a window
+		@return A copy window of the current window
+	*/
 	@property Window dup() {
 		return new Window(nc.dupwin(m_raw));
 	}
 
+	/** @brief Delete window
+		
+		Performs all operations needed to properly clean up a window
+	*/
 	void delwin() {
 		foreach(c;m_children) {
 			c.delwin();
@@ -149,10 +159,13 @@ public:
 			throw new NCursesException("Error deleting a character");
 		}
 	}
+	/// @cond NoDoc
 	mixin MoveWrapper!"delch";
+	/// @endcond
 
 
-	// Output functions
+	/// @name Output functions
+	/// @{
 	auto put(T:string)(T str) {
 		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
 			throw new NCursesException("Error adding string");
@@ -203,7 +216,10 @@ public:
 		}
 		return this;
 	}
+	/// @}
+	/// @cond NoDoc
 	alias put print;
+	/// @endcond
 
 	auto bkgd(T:TextAttribute)(T attr) {
 		attr.bkgd(m_raw);
@@ -223,13 +239,17 @@ public:
 
 	/**
 	 * Get a single keypress
+	 * @return The pressed key
 	 */
 	auto getch() {
 		return nc.wgetch(m_raw);
 	}
+	/// @cond NoDoc
 	mixin MoveWrapper!"getch";
+	/// @endcond
 
 	/** Get a string from the window
+	 * @return The string input by the user
 	 */
 	char[] getstr() {
 		// Get as much data as possible
@@ -280,7 +300,9 @@ public:
 			throw new NCursesException("Error receiving input");
 		}
 	}
+	/// @cond NoDoc
 	mixin MoveWrapper!"getstr";
+	/// @endcond
 
 
 	// Updating
@@ -312,7 +334,6 @@ public:
 		return nc.syncok(m_raw, isOk);
 	}
 
-	// Modifiers
 	/** @brief Allow or disable scrolling
 
 		Tell the window whether it is allowed to scroll upon print
@@ -324,38 +345,85 @@ public:
 	}
 
 
-	// Movement and X/Y
-	auto move(int y, int x) {
+	/// @name Movement and Coordinates
+	/// @{
+	/**
+	 * @brief Move the cursor position
+	 * 
+	 * @param y The row to move to
+	 * @param x The column to move to
+	*/
+	void move(int y, int x) {
 		if(nc.wmove(m_raw,y,x) == nc.ERR) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 	}
 
+	/// Get the current position
 	mixin Coord!"cur";
+	/// Get the window's beginning position
 	mixin Coord!"beg";
+	/// Get the window's maximum position
 	mixin Coord!"max";
+	/// Get the window's beginning position relative to its parent
 	mixin Coord!"par";
 
-	// Move window
-	auto movewin(int y, int x) {
+	/**
+	 * @brief Move the current window
+	 *
+	 * The current window is moved relative to the screen.
+	 * Coordinates are given for the top left corner of the window
+	 *
+	 * @param y The row to move to
+	 * @param x The column to move to
+	*/
+	void movewin(int y, int x) {
 		if(nc.mvderwin(m_raw, y, x) == nc.ERR) {
 			throw new NCursesException("Could not move window to correct location");
 		}
 	}
+	/// @}
 
 
-	// Border and graphics
-	int border(CharType ls = cast(CharType)0, CharType rs = cast(CharType)0,
-		CharType ts = cast(CharType)0, CharType bs = cast(CharType)0,
-		CharType tl = cast(CharType)0, CharType tr = cast(CharType)0,
-		CharType bl = cast(CharType)0, CharType br = cast(CharType)0)
+	/// @name Borders
+	/// @{
+
+	/**
+	 * @brief Create a border around the current window
+	 * 
+	 * The border takes up the first and last rows and columns inside the window.
+	 * If 0 is used for any argument, the default character is used instead.
+	 * 
+	 * @param ls The character to use for the left side. Default to ACS.VLINE
+	 * @param rs The character to use for the right side. Default to ACS.VLINE
+	 * @param ts The character to use for the top. Default to ACS.HLINE
+	 * @param bs The character to use for the bottom. Default to ACS.HLINE
+	 * @param tl The character to use for the top left corner. Default to ACS.ULCORNER
+	 * @param tr The character to use for the top right corner. Default to ACS.URCORNER
+	 * @param bl The character to use for the bottom left corner. Default to ACS.LLCORNER
+	 * @param br The character to use for the bottom right corner. Default to ACS.LRCORNER
+	*/
+	void border(CharType ls = 0, CharType rs = 0, CharType ts = 0, CharType bs = 0,
+		CharType tl = 0, CharType tr = 0, CharType bl = 0, CharType br = 0)
 	{
 		return nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br);
 	}
-	int box(CharType verch, CharType horch)
+	/**
+	 * @brief Create a box around the current window
+	 * 
+	 * The border takes up the first and last rows and columns inside the window.
+	 * If 0 is used for any argument, the default character is used instead.
+	 * Equivalent to:
+	 * @code border(verch, verch, horch, horch, 0, 0, 0, 0) @endcode
+	 * 
+	 * @param verch The character to use for the vertical sides
+	 * @param horch The character to use for the horizontal sides
+	*/
+	void box(CharType verch, CharType horch)
 	{
 		return nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0);
 	}
+	/// @}
 
 	// Flags
 	/// Is this a sub-window?

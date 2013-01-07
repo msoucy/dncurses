@@ -11,8 +11,6 @@ module metus.dncurses.mode;
 /// @cond NoDoc
 import std.conv : to;
 import metus.dncurses.base;
-/// @endcond
-
 
 private abstract class Mode {
 protected:
@@ -20,13 +18,19 @@ protected:
 		throw new NCursesException("Mode is undefined");
 	}
 }
+/// @endcond
 
-/// Flags to determine whether entering cooked mode clears flags
+/** @brief Flags to determine whether entering cooked mode clears flags */
 immutable enum ClearFlags {
 	No,
 	Yes
 }
 
+/** @name Modes
+
+	Different input modes provided by ncurses
+@{
+*/
 /** @brief Enter cooked mode
 
 	Cooked mode is the same as regular terminal input.
@@ -114,12 +118,17 @@ immutable enum ClearFlags {
 		}
 	};
 }
+/// @}
 
 /// @cond NoDoc
 private static Mode currMode;
 /// @endcond
 
 
+/** @name Handle modes
+	Work with the current mode
+@{
+*/
 /** @brief Set the current mode to a new mode
 
 	@param m The new mode to use
@@ -131,10 +140,13 @@ private static Mode currMode;
 	currMode = m;
 }
 
-/// Get the current mode
+/** @brief Get the current mode
+	@return The current mode object
+*/
 @property @safe nothrow Mode mode() {
 	return currMode;
 }
+/// @}
 
 /// Initialize the current mode
 static this() {

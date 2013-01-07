@@ -38,15 +38,16 @@ private static bool isEcho;
 /// @endcond
 
 
+/** @name Handle echo modes
+@{
+*/
 /** @brief Get echo mode
-
 	@return The current echo mode
 */
 @safe @property nothrow auto echo() {
 	return isEcho;
 }
 /** @brief Change echo mode
-
 	@param echoOn Whether echo should be enabled
 	@return The old echo mode
 */
@@ -57,6 +58,7 @@ private static bool isEcho;
 	}
 	return currEcho;
 }
+/// @}
 
 
 /** @brief Control flush of input and output on interrupt
@@ -78,7 +80,7 @@ private static bool isEcho;
 
 	If the value of shouldFlush is TRUE, then flushing of the output buffer
 	associated with the current screen will occur when an interrupt key
-	(interrupt, suspend, or quit) is pressed.If the value of shouldFlush is
+	(interrupt, suspend, or quit) is pressed. If the value of shouldFlush is
 	FALSE, then no flushing of the buffer will occur when an interrupt key
 	is pressed.
 	
@@ -93,7 +95,7 @@ private static bool isEcho;
 
 /** @brief Key name wrapper
 
-Allows the use of Key.NAME instead of KEY_NAME, which makes it nicer to use
+Allows the use of Key.NAME instead of KEY_NAME to get key names
 */
 struct Key {
 	@disable this();
@@ -110,8 +112,7 @@ struct Key {
 
 /** @brief ACS name wrapper
 
-Allows the use of ACS.name instead of ACS_NAME,
-which makes it nicer to use alternative character sets
+Allows the use of ACS.name instead of ACS_NAME to get alternative character sets
 */
 struct ACS {
 	@disable this();
