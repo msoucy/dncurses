@@ -223,9 +223,15 @@ class Window {
 		}
 		return this;
 	}
-	auto bkgd(char c, TextAttribute[] attrs ...) {
+	auto bkgd(char c) {
 		nc.wbkgdset(m_raw, (nc.getbkgd(m_raw)&~nc.A_CHARTEXT)|c);
-		return bkgd(attrs);
+		return this;
+	}
+	auto bkgd(char c, TextAttribute[] attrs ...) {
+		return bkgd(c).bkgd(attrs);
+	}
+	auto bkgd() {
+		return nc.getbkgd(m_raw);
 	}
 	/// @}
 
