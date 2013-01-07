@@ -210,7 +210,7 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	return new class TextAttribute {
 		/// Remove all attributes from a window
 		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wattrset(win, 0UL) == nc.ERR) {
+			if(nc.wattrset(win, 0) == nc.ERR) {
 				throw new NCursesException("Could not set attributes");
 			}
 		}
