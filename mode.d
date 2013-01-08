@@ -21,7 +21,7 @@ protected:
 /// @endcond
 
 /** @brief Flags to determine whether entering cooked mode clears flags */
-immutable enum ClearFlags {
+immutable enum SetFlags {
 	No,
 	Yes
 }
@@ -39,11 +39,11 @@ immutable enum ClearFlags {
 	@param cf true to clear the IXON and ISIG flags, false to leave them
 	@return A cooked mode specifier
 */
-@safe pure nothrow Mode Cooked(ClearFlags cf = ClearFlags.No) {
+@safe pure nothrow Mode Cooked(SetFlags cf = SetFlags.No) {
 	return new class Mode {
 	protected:
 		@system override int apply() {
-			if(cf == ClearFlags.Yes) {
+			if(cf == SetFlags.Yes) {
 				return nc.noraw();
 			} else {
 				return nc.nocbreak();
@@ -51,7 +51,7 @@ immutable enum ClearFlags {
 		}
 	public:
 		override string toString() {
-			return "Cooked("~(cf==ClearFlags.Yes? "" : "No")~"ClearFlags)";
+			return "Cooked("~(cf==SetFlags.Yes? "" : "No")~"SetFlags)";
 		}
 	};
 }
@@ -150,5 +150,5 @@ private static Mode currMode;
 
 /// Initialize the current mode
 static this() {
-	currMode = Cooked(ClearFlags.No);
+	currMode = Cooked(SetFlags.No);
 }

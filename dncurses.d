@@ -42,7 +42,7 @@ public Window stdwin;
 	 // Call library initscr and bind our standard window
 	stdwin = new Window(nc.initscr());
 	echo = true;
-	mode = Cooked(ClearFlags.No);
+	mode = Cooked(SetFlags.No);
 	return stdwin;
 }
 /** @brief End all windows

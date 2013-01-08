@@ -210,16 +210,14 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	return new class TextAttribute {
 		/// Remove all attributes from a window
 		@trusted void apply(nc.WINDOW* win) {
-			version(X86_64) enum ZERO = 0UL;
-			else enum ZERO = 0U;
-			if(nc.wattrset(win, ZERO) == nc.ERR) {
+			if(nc.wattrset(win, nc.chtype.init) == nc.ERR) {
 				throw new NCursesException("Could not set attributes");
 			}
 		}
 
 		/// Clear all attributes from a window's background
 		@trusted void bkgd(nc.WINDOW* win) {
-			nc.wbkgdset(win, 0UL);
+			nc.wbkgdset(win, nc.chtype.init);
 		}
 	};
 }

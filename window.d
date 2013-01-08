@@ -39,7 +39,7 @@ class Window {
 
 		// Handle coordinate functions
 		mixin template Coord(string name) {
-			@property @trusted nothrow auto Coord() const {
+			@property @trusted nothrow const Coord() const {
 				return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 			}
 			mixin("alias Coord "~name~";");
@@ -47,7 +47,7 @@ class Window {
 
 		mixin template MoveWrapper(string Func) {
 			auto MoveWrapper(T...)(int y, int x, T t) {
-				this.move(y,x);
+				this.cursor(y,x);
 				return mixin(Func~"(t)");
 			}
 			mixin("alias MoveWrapper mv"~Func~";");
@@ -124,6 +124,16 @@ class Window {
 		return new Window(nc.dupwin(m_raw));
 	}
 
+	/** @brief Resize a window
+		@param rows The number of rows the window contains
+		@param columns The number of columns the window contains
+	*/
+	void resize(int rows, int columns) {
+		if(nc.wresize(m_raw, rows, columns) == nc.ERR) {
+			throw new NCursesException("Error resizing window");
+		}
+	}
+
 	/** @brief Delete window
 		
 		Performs all operations needed to properly clean up a window
@@ -167,18 +177,27 @@ class Window {
 	/// @name Output functions
 	/// @{
 	auto put(T:string)(T str) {
+		if(parent !is null) {
+			parent.refresh();
+		}
 		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
 			throw new NCursesException("Error adding string");
 		}
 		return this;
 	}
 	auto put(T:Pos)(T p) {
+		if(parent !is null) {
+			parent.refresh();
+		}
 		if(nc.wmove(m_raw, p.y, p.x) == nc.ERR) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 		return this;
 	}
 	auto put(T:AttributeString)(T str) {
+		if(parent !is null) {
+			parent.refresh();
+		}
 		nc.attr_t oldAttr = m_raw.attrs;
 		nc.attr_t newAttr = ((str.attr|this.m_raw.attrs)&~str.attrDisable) | (str.attr & str.attrDisable & nc.A_COLOR);
 		if(nc.wattrset(this.m_raw, newAttr) == nc.ERR) {
@@ -193,14 +212,19 @@ class Window {
 		return this;
 	}
 	auto put(T:TextAttribute)(T attr) {
+		if(parent !is null) {
+			parent.refresh();
+		}
 		attr.apply(m_raw);
 		return this;
 	}
 	auto put(T)(T t) {
-		this.put(t.to!string());
-		return this;
+		return this.put(t.to!string());
 	}
 	auto put(T...)(T t) {
+		if(parent !is null) {
+			parent.refresh();
+		}
 		foreach(val;t) {
 			this.put(val);
 		}
@@ -275,10 +299,10 @@ class Window {
 					ret = ret[0..($-1)];
 					if(tmpecho) {
 						if(cur.x) {
-							move(cur.y, cur.x-1);
+							cursor(cur.y, cur.x-1);
 							delch();
 						} else {
-							move(cur.y-1, max.x);
+							cursor(cur.y-1, max.x);
 							delch();
 						}
 					}
@@ -309,8 +333,13 @@ class Window {
 
 
 	// Updating
-	auto refresh() {
-		return nc.wrefresh(m_raw);
+	void refresh() {
+		if(parent !is null) {
+			parent.refresh();
+		}
+		if(nc.wrefresh(m_raw) == nc.ERR) {
+			throw new NCursesException("Could not refresh window");
+		}
 	}
 	auto erase() {
 		return nc.werase(m_raw);
@@ -356,8 +385,8 @@ class Window {
 	 * @param y The row to move to
 	 * @param x The column to move to
 	*/
-	void move(int y, int x) {
-		if(nc.wmove(m_raw,y,x) == nc.ERR) {
+	void cursor(int y, int x) {
+		if(nc.wmove(m_raw,y+beg.y,x+beg.x) == nc.ERR) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 	}
@@ -409,6 +438,9 @@ class Window {
 	void border(CharType ls = 0, CharType rs = 0, CharType ts = 0, CharType bs = 0,
 		CharType tl = 0, CharType tr = 0, CharType bl = 0, CharType br = 0)
 	{
+		if(parent !is null) {
+			parent.refresh();
+		}
 		if(nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br) != nc.OK) {
 			throw new NCursesException("Could not draw border");
 		}
@@ -426,6 +458,9 @@ class Window {
 	*/
 	void box(CharType verch, CharType horch)
 	{
+		if(parent !is null) {
+			parent.refresh();
+		}
 		if(nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0) != nc.OK) {
 			throw new NCursesException("Could not draw box");
 		}
