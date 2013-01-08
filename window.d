@@ -409,10 +409,14 @@ class Window {
 	 * @param y The row to move to
 	 * @param x The column to move to
 	*/
-	void movewin(int y, int x) {
-		if(nc.mvderwin(m_raw, y, x) == nc.ERR) {
+	void move(int y, int x) {
+		if(parent !is null) {
+			parent.refresh();
+		}
+		if(nc.mvwin(m_raw, y, x) != nc.OK) {
 			throw new NCursesException("Could not move window to correct location");
 		}
+		this.refresh();
 	}
 	/// @}
 
@@ -444,6 +448,7 @@ class Window {
 		if(nc.wborder(m_raw, ls, rs, ts, bs, tl, tr, bl, br) != nc.OK) {
 			throw new NCursesException("Could not draw border");
 		}
+		this.refresh();
 	}
 	/**
 	 * @brief Create a box around the current window
@@ -464,6 +469,7 @@ class Window {
 		if(nc.wborder(m_raw, verch, verch, horch, horch, 0, 0, 0, 0) != nc.OK) {
 			throw new NCursesException("Could not draw box");
 		}
+		this.refresh();
 	}
 	/// @}
 
