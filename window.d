@@ -39,7 +39,7 @@ class Window {
 
 		// Handle coordinate functions
 		mixin template Coord(string name) {
-			@property @trusted nothrow const Coord() const {
+			@property nothrow const Coord() const {
 				return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 			}
 			mixin("alias Coord "~name~";");
@@ -129,7 +129,7 @@ class Window {
 		@param columns The number of columns the window contains
 	*/
 	void resize(int rows, int columns) {
-		if(nc.wresize(m_raw, rows, columns) == nc.ERR) {
+		if(nc.wresize(m_raw, rows, columns) != nc.OK) {
 			throw new NCursesException("Error resizing window");
 		}
 	}
@@ -165,7 +165,7 @@ class Window {
 	/** Delete the character under the cursor
 	 */
 	void delch() {
-		if(nc.wdelch(m_raw) == nc.ERR) {
+		if(nc.wdelch(m_raw) != nc.OK) {
 			throw new NCursesException("Error deleting a character");
 		}
 	}
@@ -180,7 +180,7 @@ class Window {
 		if(parent !is null) {
 			parent.refresh();
 		}
-		if(nc.waddstr(m_raw, str.toStringz()) == nc.ERR) {
+		if(nc.waddstr(m_raw, str.toStringz()) != nc.OK) {
 			throw new NCursesException("Error adding string");
 		}
 		return this;
@@ -189,7 +189,7 @@ class Window {
 		if(parent !is null) {
 			parent.refresh();
 		}
-		if(nc.wmove(m_raw, p.y, p.x) == nc.ERR) {
+		if(nc.wmove(m_raw, p.y, p.x) != nc.OK) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 		return this;
@@ -200,13 +200,13 @@ class Window {
 		}
 		nc.attr_t oldAttr = m_raw.attrs;
 		nc.attr_t newAttr = ((str.attr|this.m_raw.attrs)&~str.attrDisable) | (str.attr & str.attrDisable & nc.A_COLOR);
-		if(nc.wattrset(this.m_raw, newAttr) == nc.ERR) {
+		if(nc.wattrset(this.m_raw, newAttr) != nc.OK) {
 			throw new NCursesException("Could not set attributes");
 		}
-		if(nc.waddstr(this.m_raw, str.str.toStringz()) == nc.ERR) {
+		if(nc.waddstr(this.m_raw, str.str.toStringz()) != nc.OK) {
 			throw new NCursesException("Error adding string");
 		}
-		if(nc.wattrset(this.m_raw, oldAttr) == nc.ERR) {
+		if(nc.wattrset(this.m_raw, oldAttr) != nc.OK) {
 			throw new NCursesException("Could not set attributes");
 		}
 		return this;
@@ -337,7 +337,7 @@ class Window {
 		if(parent !is null) {
 			parent.refresh();
 		}
-		if(nc.wrefresh(m_raw) == nc.ERR) {
+		if(nc.wrefresh(m_raw) != nc.OK) {
 			throw new NCursesException("Could not refresh window");
 		}
 	}
@@ -386,7 +386,7 @@ class Window {
 	 * @param x The column to move to
 	*/
 	void cursor(int y, int x) {
-		if(nc.wmove(m_raw,y+beg.y,x+beg.x) == nc.ERR) {
+		if(nc.wmove(m_raw,y+beg.y,x+beg.x) != nc.OK) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 	}

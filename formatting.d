@@ -18,12 +18,12 @@ public import metus.dncurses.base;
 	@param ch The character to print
 	@param n The length of the line
 */
-@safe pure nothrow TextAttribute vline(CharType ch, int n) {
+pure nothrow TextAttribute vline(CharType ch, int n) {
 	return new class TextAttribute {
-		@trusted void apply(nc.WINDOW* win) {
+		void apply(nc.WINDOW* win) {
 			nc.wvline(win, ch, n);
 		}
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			throw new NCursesException("Cannot put vline onto background");
 		}
 	};
@@ -34,12 +34,12 @@ public import metus.dncurses.base;
 	@param ch The character to print
 	@param n The length of the line
 */
-@safe pure nothrow TextAttribute hline(CharType ch, int n) {
+pure nothrow TextAttribute hline(CharType ch, int n) {
 	return new class TextAttribute {
-		@trusted void apply(nc.WINDOW* win) {
+		void apply(nc.WINDOW* win) {
 			nc.whline(win, ch, n);
 		}
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			throw new NCursesException("Cannot put hline onto background");
 		}
 	};
@@ -143,14 +143,14 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	// Enable a property
-	@property @safe pure nothrow TextAttribute AttributeProperty() {
+	@property pure nothrow TextAttribute AttributeProperty() {
 		return new class TextAttribute {
-			@trusted void apply(nc.WINDOW* win) {
-				if(nc.wattron(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+			void apply(nc.WINDOW* win) {
+				if(nc.wattron(win, mixin("nc.A_"~realname.toUpper())) != nc.OK) {
 					throw new NCursesException("Could not set attributes");
 				}
 			}
-			@trusted void bkgd(nc.WINDOW* win) {
+			void bkgd(nc.WINDOW* win) {
 				nc.wbkgdset(win, nc.getbkgd(win)|mixin("nc.A_"~realname.toUpper()));
 			}
 		};
@@ -159,14 +159,14 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	mixin("alias AttributeProperty "~name~";");
 
 	// Disable a property
-	@property @safe pure nothrow TextAttribute NoAttributeProperty() {
+	@property pure nothrow TextAttribute NoAttributeProperty() {
 		return new class TextAttribute {
-			@trusted void apply(nc.WINDOW* win) {
-				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) == nc.ERR) {
+			void apply(nc.WINDOW* win) {
+				if(nc.wattroff(win, mixin("nc.A_"~realname.toUpper())) != nc.OK) {
 					throw new NCursesException("Could not set attributes");
 				}
 			}
-			@trusted void bkgd(nc.WINDOW* win) {
+			void bkgd(nc.WINDOW* win) {
 				nc.wbkgdset(win, nc.getbkgd(win)&~mixin("nc.A_"~realname.toUpper()));
 			}
 		};
@@ -206,17 +206,17 @@ private mixin template AttributeProperty(string name, string realname=name) {
 
 	@return An attribute object that a Window uses to clear attributes
 */
-@property @safe pure nothrow TextAttribute attrclear() {
+@property pure nothrow TextAttribute attrclear() {
 	return new class TextAttribute {
 		/// Remove all attributes from a window
-		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wattrset(win, nc.chtype.init) == nc.ERR) {
+		void apply(nc.WINDOW* win) {
+			if(nc.wattrset(win, nc.chtype.init) != nc.OK) {
 				throw new NCursesException("Could not set attributes");
 			}
 		}
 
 		/// Clear all attributes from a window's background
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			nc.wbkgdset(win, nc.chtype.init);
 		}
 	};
@@ -267,15 +267,15 @@ private {
 
 	@return true if colors can be used, false otherwise
 */
-@trusted bool hasColors() {
+bool hasColors() {
 	return nc.has_colors();
 }
 
-private short mkPairNum(short fg, short bg) {
+@safe pure nothrow private short mkPairNum(short fg, short bg) {
 	return ((bg<<3)|fg)&0xFFFF;
 }
 
-private short mkPairNum(ulong attrs) {
+@safe pure nothrow private short mkPairNum(ulong attrs) {
 	return mkPairNum(((attrs&~FG_MASK)>>FG_SHIFT)&0xFFFF, ((attrs&~BG_MASK)>>BG_SHIFT)&0xFFFF);
 }
 
@@ -283,7 +283,7 @@ private short mkPairNum(ulong attrs) {
 
 	Start ncurses' color mode and create the required color pairs
 */
-@trusted void initColor() {
+void initColor() {
 	assert(nc.has_colors());
 	nc.start_color();
 	assert(nc.COLOR_PAIRS >= Color.max*Color.max);
@@ -324,16 +324,16 @@ private short mkPairNum(ulong attrs) {
 	@param c The color to apply
 	@return A text attribute object that the window evaluates
 */
-@property @safe pure nothrow TextAttribute fg(short c) {
+@property pure nothrow TextAttribute fg(short c) {
 	return new class TextAttribute {
 		/// Apply a background color to a window
-		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wcolor_set(win, (mkPairNum(win.attrs) & 0b00111000) | c, cast(void*)0) == nc.ERR) {
+		void apply(nc.WINDOW* win) {
+			if(nc.wcolor_set(win, (mkPairNum(win.attrs) & 0b00111000) | c, cast(void*)0) != nc.OK) {
 				throw new NCursesException("Could not set foreground color");
 			}
 		}
 		/// Apply a foreground color to a window's background
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			nc.wbkgdset(win, (nc.getbkgd(win) & ~FG_MASK) | (c<<FG_SHIFT));
 		}
 	};
@@ -364,16 +364,16 @@ private short mkPairNum(ulong attrs) {
 /** @brief Remove foreground color from a window
 	@return A text attribute object that the window evaluates
 */
-@property @safe pure nothrow TextAttribute nofg() {
+@property pure nothrow TextAttribute nofg() {
 	return new class TextAttribute {
 		/// Remove a foreground color from a window
-		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wcolor_set(win, mkPairNum(win.attrs) & 0b00111000, cast(void*)0) == nc.ERR) {
+		void apply(nc.WINDOW* win) {
+			if(nc.wcolor_set(win, mkPairNum(win.attrs) & 0b00111000, cast(void*)0) != nc.OK) {
 				throw new NCursesException("Could not set foreground color");
 			}
 		}
 		/// Remove a foreground color from a window's background
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			nc.wbkgdset(win, nc.getbkgd(win) & ~FG_MASK);
 		}
 	};
@@ -409,16 +409,16 @@ private short mkPairNum(ulong attrs) {
 	@param c The color to apply
 	@return A text attribute object that the window evaluates
 */
-@property @safe pure nothrow TextAttribute bg(short c) {
+@property pure nothrow TextAttribute bg(short c) {
 	return new class TextAttribute {
 		/// Apply a background color to a window
-		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wcolor_set(win, ((mkPairNum(win.attrs) & 0b00000111) | (c<<3)) & 0xFFFF, cast(void*)0) == nc.ERR) {
+		void apply(nc.WINDOW* win) {
+			if(nc.wcolor_set(win, ((mkPairNum(win.attrs) & 0b00000111) | (c<<3)) & 0xFFFF, cast(void*)0) != nc.OK) {
 				throw new NCursesException("Could not set background color");
 			}
 		}
 		/// Apply a background color to a window's background
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			nc.wbkgdset(win, (nc.getbkgd(win) & ~BG_MASK) | (c<<BG_SHIFT));
 		}
 	};
@@ -449,16 +449,16 @@ private short mkPairNum(ulong attrs) {
 /** @brief Remove background color from a window
 	@return A text attribute object that the window evaluates
 */
-@property @safe pure nothrow TextAttribute nobg() {
+@property pure nothrow TextAttribute nobg() {
 	return new class TextAttribute {
 		/// Remove a background color from a window
-		@trusted void apply(nc.WINDOW* win) {
-			if(nc.wcolor_set(win, mkPairNum(win.attrs) & 0b00000111, cast(void*)0) == nc.ERR) {
+		void apply(nc.WINDOW* win) {
+			if(nc.wcolor_set(win, mkPairNum(win.attrs) & 0b00000111, cast(void*)0) != nc.OK) {
 				throw new NCursesException("Could not set background color");
 			}
 		}
 		/// Remove a background color from a window's background
-		@trusted void bkgd(nc.WINDOW* win) {
+		void bkgd(nc.WINDOW* win) {
 			nc.wbkgdset(win, nc.getbkgd(win) & ~BG_MASK);
 		}
 	};

@@ -134,7 +134,7 @@ private static Mode currMode;
 	@param m The new mode to use
 */
 @property void mode(Mode m) {
-	if(m is null || m.apply() == nc.ERR) {
+	if(m is null || m.apply() != nc.OK) {
 		throw new NCursesException("Could not change to mode: "~m.to!string());
 	}
 	currMode = m;

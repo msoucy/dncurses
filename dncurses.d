@@ -18,7 +18,7 @@ public import metus.dncurses.mode;
 
 	@return The version number as a string
 */
-@trusted char[] ncurses_version() {
+char[] ncurses_version() {
 	char* ver = nc.curses_version();
 	return ver[0..strlen(ver)];
 }
@@ -38,7 +38,7 @@ public Window stdwin;
 	Creates stdwin and forces echo to be true
 	@return stdwin
 */
-@trusted auto initscr() {
+auto initscr() {
 	 // Call library initscr and bind our standard window
 	stdwin = new Window(nc.initscr());
 	echo = true;
@@ -50,9 +50,9 @@ public Window stdwin;
 	Cleans up the library and leaves ncurses mode
 	@return 
 */
- @trusted void endwin() {
+ void endwin() {
 	stdwin = null;
-	if(nc.endwin() == nc.ERR) {
+	if(nc.endwin() != nc.OK) {
 		throw new NCursesException("Could not end window properly");
 	}
 }

@@ -53,7 +53,7 @@ private static bool isEcho;
 */
 @trusted @property auto echo(bool echoOn) {
 	bool currEcho = isEcho;
-	if(((isEcho=echoOn)==true ? nc.echo() : nc.noecho()) == nc.ERR) {
+	if(((isEcho=echoOn)==true ? nc.echo() : nc.noecho()) != nc.OK) {
 		throw new NCursesException("Could not change echo mode");
 	}
 	return currEcho;
@@ -88,7 +88,7 @@ private static bool isEcho;
 */
 @trusted @property void intrflush(bool shouldFlush) {
 	// nc.intrflush ignores the window parameter...
-	if(nc.intrflush(nc.stdscr, shouldFlush) == nc.ERR) {
+	if(nc.intrflush(nc.stdscr, shouldFlush) != nc.OK) {
 		throw new NCursesException("Could not change flush behavior");
 	}
 }
@@ -150,7 +150,7 @@ struct Pos {
 
 /// Set the file descriptor to use for typeahead
 @trusted void typeahead(File fd) {
-	if(nc.typeahead(fd.fileno()) == nc.ERR) {
+	if(nc.typeahead(fd.fileno()) != nc.OK) {
 		throw new NCursesException("Could not set typeahead variable");
 	}
 }
