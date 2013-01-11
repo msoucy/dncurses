@@ -386,7 +386,7 @@ class Window {
 	 * @param x The column to move to
 	*/
 	void cursor(int y, int x) {
-		if(nc.wmove(m_raw,y+beg.y,x+beg.x) != nc.OK) {
+		if(nc.wmove(m_raw,y,x) != nc.OK) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
 	}
