@@ -59,8 +59,8 @@ public:
 	/** @brief Create a new AttributeString
 		@param s The D string to use as a source
 	*/
-	@safe pure nothrow this(string s) {
-		m_str = s;
+	@safe pure this(string s) {
+		m_str = s.idup;
 	}
 	/** @brief Get the attributes to enable
 		@return A compound of all attributes to enable
@@ -130,12 +130,12 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	// Add a property to a regular string
-	@property @safe pure nothrow AttributeString AttributeProperty(string str) {
+	@property @safe pure AttributeString AttributeProperty(string str) {
 		return mixin(`AttributeString(str).`~name~`()`);
 	}
 
 	// Turn a formatted character into a formatted string
-	@property @safe pure nothrow AttributeString AttributeProperty(nc.chtype ch) {
+	@property @safe pure AttributeString AttributeProperty(nc.chtype ch) {
 		AttributeString ret = "";
 		ret ~= ch & nc.A_CHARTEXT;
 		ret.m_attr = (ch & nc.A_ATTRIBUTES) | mixin("nc.A_"~realname.toUpper());
@@ -183,7 +183,7 @@ private mixin template AttributeProperty(string name, string realname=name) {
 	}
 
 	// Remove a property from a string
-	@property @safe pure nothrow AttributeString NoAttributeProperty(string str) {
+	@property @safe pure AttributeString NoAttributeProperty(string str) {
 		AttributeString ret = str;
 		ret.m_noattr = mixin("nc.A_"~realname.toUpper());
 		return ret;
@@ -316,7 +316,7 @@ void initColor() {
 	@param c The color to apply
 	@return An attribute string with the new foreground applied
 */
-@property @safe pure nothrow AttributeString fg(string str, short c) {
+@property @safe pure AttributeString fg(string str, short c) {
 	return AttributeString(str).fg(c);
 }
 
@@ -357,7 +357,7 @@ void initColor() {
 	@param str The string to remove the color from
 	@return An attribute string with the foreground removed
 */
-@property @safe pure nothrow AttributeString nofg(string str) {
+@property @safe pure AttributeString nofg(string str) {
 	return AttributeString(str).nofg();
 }
 
@@ -401,7 +401,7 @@ void initColor() {
 	@param c The color to apply to the background
 	@return An attribute string with the new background applied
 */
-@property @safe pure nothrow AttributeString bg(string str, short c) {
+@property @safe pure AttributeString bg(string str, short c) {
 	return AttributeString(str).bg(c);
 }
 
@@ -442,7 +442,7 @@ void initColor() {
 	@param str The string to remove the color from
 	@return An attribute string with the background removed
 */
-@property @safe pure nothrow AttributeString nobg(string str) {
+@property @safe pure AttributeString nobg(string str) {
 	return AttributeString(str).nobg();
 }
 
@@ -476,7 +476,7 @@ void initColor() {
 @safe pure nothrow AttributeString color(AttributeString str, short f, short b) {
 	return str.fg(f).bg(b);
 }
-@safe pure nothrow AttributeString color(string str, short f, short b) {
+@safe pure AttributeString color(string str, short f, short b) {
 	return AttributeString(str).fg(f).bg(b);
 }
 
