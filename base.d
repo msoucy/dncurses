@@ -9,30 +9,23 @@ module metus.dncurses.base;
 
 
 /// @cond NoDoc
-import std.string : toUpper;
+import std.string : toUpper, strlen;
 import std.stdio : File;
+public import metus.dncurses.errors;
 package import nc = deimos.ncurses.ncurses;
+
+/** @brief Get the ncurses version
+
+	@return The version number as a string
+*/
+char[] ncurses_version() {
+	char* ver = nc.curses_version();
+	return ver[0..strlen(ver)];
+}
+
 
 // Character type from Deimos
 alias nc.chtype CharType;
-/// @endcond
-
-/** @brief Ncurses error class
-
-	Base class for all errors related to dncurses
-*/
-class NCursesException : Exception {
-public:
-	/** @brief Create and automatically initialize an NCursesException
-		
-		@param _msg The error message
-		@param file The file that the error is being thrown in
-		@param line The line that the error is being thrown on
-	*/
-    this (string _msg, string file=__FILE__, int line=__LINE__) {
-    	super(_msg, file, line);
-	}
-};/// @cond NoDoc
 // Stores whether ncurses is in echo mode or not
 private static bool isEcho;
 /// @endcond
@@ -65,7 +58,7 @@ private static bool isEcho;
 
 	Control flushing of input and output queues when an interrupt, quit,
 	or suspend character is sent to the terminal.
-	
+
 	@param shouldFlush Enable (true) or disable (false) flushing
 */
 @trusted @property void qiflush(bool shouldFlush) {
@@ -83,7 +76,7 @@ private static bool isEcho;
 	(interrupt, suspend, or quit) is pressed. If the value of shouldFlush is
 	FALSE, then no flushing of the buffer will occur when an interrupt key
 	is pressed.
-	
+
 	@param shouldFlush Enable (true) or disable (false) flushing
 */
 @trusted @property void intrflush(bool shouldFlush) {
@@ -118,7 +111,7 @@ struct ACS {
 	@disable this();
 	/// Map key names to their deimos values
 	static @system nothrow @property CharType opDispatch(string key)() {
-		return mixin("nc.ACS_"~key.toUpper()~"()");
+		return mixin("nc.ACS_"~key.toUpper());
 	}
 }
 

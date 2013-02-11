@@ -9,20 +9,9 @@ module metus.dncurses.dncurses;
 
 
 /// @cond NoDoc
-import std.string : toUpper, strlen;
 public import metus.dncurses.window;
 public import metus.dncurses.mode;
 /// @endcond
-
-/** @brief Get the ncurses version
-
-	@return The version number as a string
-*/
-char[] ncurses_version() {
-	char* ver = nc.curses_version();
-	return ver[0..strlen(ver)];
-}
-
 
 
 /** @brief Standard window
@@ -48,7 +37,7 @@ auto initscr() {
 /** @brief End all windows
 
 	Cleans up the library and leaves ncurses mode
-	@return 
+	@return
 */
  void endwin() {
 	stdwin = null;

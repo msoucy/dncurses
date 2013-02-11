@@ -30,7 +30,7 @@ enum Positioning {
 /** @brief Window wrapper
  */
 class Window {
-	private {
+	package {
 		Window m_parent = null;
 		Window[] m_children = [];
 		nc.WINDOW* m_raw;
@@ -135,12 +135,12 @@ class Window {
 	}
 
 	/** @brief Delete window
-		
+
 		Performs all operations needed to properly clean up a window
 	*/
-	void delwin() {
+	~this() {
 		foreach(c;m_children) {
-			c.delwin();
+			c.destroy();
 		}
 		nc.delwin(m_raw);
 		m_raw = null;
@@ -381,7 +381,7 @@ class Window {
 	/// @{
 	/**
 	 * @brief Move the cursor position
-	 * 
+	 *
 	 * @param y The row to move to
 	 * @param x The column to move to
 	*/
@@ -426,10 +426,10 @@ class Window {
 
 	/**
 	 * @brief Create a border around the current window
-	 * 
+	 *
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
-	 * 
+	 *
 	 * @param ls The character to use for the left side. Default to ACS.VLINE
 	 * @param rs The character to use for the right side. Default to ACS.VLINE
 	 * @param ts The character to use for the top. Default to ACS.HLINE
@@ -452,12 +452,12 @@ class Window {
 	}
 	/**
 	 * @brief Create a box around the current window
-	 * 
+	 *
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
 	 * Equivalent to:
 	 * @code border(verch, verch, horch, horch, 0, 0, 0, 0) @endcode
-	 * 
+	 *
 	 * @param verch The character to use for the vertical sides
 	 * @param horch The character to use for the horizontal sides
 	*/
