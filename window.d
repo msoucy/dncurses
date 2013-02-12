@@ -1,9 +1,10 @@
-/** @file window.d
-	@brief D ncurses window class wrappers
-	@authors Matthew Soucy <msoucy@csh.rit.edu>
-	@date Nov 12, 2012
-	@version 0.0.1
-*/
+/**
+ * @file window.d
+ * @brief D ncurses window class wrappers
+ * @author Matthew Soucy <msoucy@csh.rit.edu>
+ * @date Nov 12, 2012
+ * @version 0.0.1
+ */
 ///D ncurses window class wrappers
 module metus.dncurses.window;
 
@@ -17,8 +18,7 @@ public import metus.dncurses.formatting;
 /// @endcond
 
 
-/** @brief Positioning style for subwindow creation
-*/
+///Positioning style for subwindow creation
 enum Positioning {
 	/// Windows are created with coordinates relative to the parent window
 	Relative,
@@ -27,9 +27,9 @@ enum Positioning {
 }
 
 
-/** @brief Window wrapper
- */
+/// Window wrapper
 class Window {
+	/// @cond NoDoc
 	package {
 		Window m_parent = null;
 		Window[] m_children = [];
@@ -39,7 +39,7 @@ class Window {
 
 		// Handle coordinate functions
 		mixin template Coord(string name) {
-			@property nothrow const Coord() const {
+			const Coord() @property nothrow const {
 				return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 			}
 			mixin("alias Coord "~name~";");
@@ -54,8 +54,9 @@ class Window {
 		}
 	}
 
-	/// @cond NoDoc
-	/** Constructor from a C-style window
+	/**
+	 * Constructor from a C-style window
+	 *
 	 * @param raw The base ncurses window to use
 	 */
 	package this(nc.WINDOW* raw)
@@ -65,7 +66,9 @@ class Window {
 		m_raw = raw;
 	}
 
-	/** Construct an ncurses Window
+	/**
+	 * Construct an ncurses Window
+	 *
 	 * @param nlines The number of lines for the window
 	 * @param lcols The number of columns for the window
 	 * @param y0 The number of the first row that the window uses
@@ -83,7 +86,9 @@ class Window {
 		m_raw = nc.newwin(nlines,ncols,y0,x0);
 	}
 
-	/** Construct an ncurses Window
+	/**
+	 * Construct an ncurses Window
+	 *
 	 * @param myParent The parent window of the window to be created
 	 * @param nlines The number of lines for the window
 	 * @param lcols The number of columns for the window
@@ -110,34 +115,41 @@ class Window {
 	}
 	/// @endcond
 
-	/** @brief Get the window's parent
-		@return The parent window of the current window
-	*/
-	@property Window parent() {
+	/**
+	 * Get the window's parent
+	 *
+	 * @return The parent window of the current window
+	 */
+	Window parent() @property {
 		return m_parent;
 	}
 
-	/** @brief Duplicate a window
-		@return A copy window of the current window
-	*/
-	@property Window dup() {
+	/**
+	 * Duplicate a window
+	 *
+	 * @return A copy window of the current window
+	 */
+	Window dup() @property {
 		return new Window(nc.dupwin(m_raw));
 	}
 
-	/** @brief Resize a window
-		@param rows The number of rows the window contains
-		@param columns The number of columns the window contains
-	*/
+	/**
+	 * Resize a window
+	 *
+	 * @param rows The number of rows the window contains
+	 * @param columns The number of columns the window contains
+	 */
 	void resize(int rows, int columns) {
 		if(nc.wresize(m_raw, rows, columns) != nc.OK) {
 			throw new NCursesException("Error resizing window");
 		}
 	}
 
-	/** @brief Delete window
-
-		Performs all operations needed to properly clean up a window
-	*/
+	/**
+	 * Delete window
+	 *
+	 * Performs all operations needed to properly clean up a window
+	 */
 	~this() {
 		foreach(c;m_children) {
 			c.destroy();
@@ -146,24 +158,56 @@ class Window {
 		m_raw = null;
 	}
 
-	@property auto nodelay(bool bf) {
-		return nc.nodelay(m_raw,bf);
+	/**
+	 * Set getch's nodelay option
+	 *
+	 * If this is set to true, then getch is nonblocking
+	 * Otherwise, it's blocking
+	 *
+	 * @param bf true if calls to getch should be nonblocking
+	 */
+	void nodelay(bool bf) @property {
+		if(nc.nodelay(m_raw,bf) != nc.OK) {
+			throw new NCursesException("Cannot set blocking status of window");
+		}
 	}
-	@property auto timeout(int delay) {
-		return nc.wtimeout(m_raw,delay);
+	/**
+	 * Set getch's timeout option
+	 *
+	 * If this is set to a negative number, then getch is blocking
+	 * If this is set to 0, then nonblocking read is used
+	 * If this is set to a positive number, then getch will block for delay milliseconds.
+	 *
+	 * @param delay The delay value
+	 */
+	void timeout(int delay) @property {
+		nc.wtimeout(m_raw,delay);
 	}
-	@property auto keypad(bool enabled) {
-		return nc.keypad(m_raw,(currKeypad=enabled));
+	/**
+	 * Enable the user's keypad
+	 *
+	 * @param enabled true to enable keypad detection, false otherwise
+	 */
+	void keypad(bool enabled) @property {
+		if(nc.keypad(m_raw,(currKeypad=enabled)) != nc.OK) {
+			throw new NCursesException("Cannot set keypad recognition for window");
+		}
 	}
-	@property auto meta(bool enabled) {
-		return nc.meta(m_raw,(currMeta=enabled));
+	/**
+	 * Enable 8 significant digits of input
+	 *
+	 * @param enabled true to enable meta keys, false otherwise
+	 */
+	void meta(bool enabled) @property {
+		if(nc.meta(m_raw,(currMeta=enabled)) != nc.OK) {
+			throw new NCursesException("Cannot set meta key recognition for window");
+		}
 	}
 
 
 	// Output
 
-	/** Delete the character under the cursor
-	 */
+	/// Delete the character under the cursor
 	void delch() {
 		if(nc.wdelch(m_raw) != nc.OK) {
 			throw new NCursesException("Error deleting a character");
@@ -174,8 +218,10 @@ class Window {
 	/// @endcond
 
 
-	/// @name Output functions
-	/// @{
+	/**
+	 * @name Output functions
+	 * @{
+	 */
 	auto put(T:string)(T str) {
 		if(parent !is null) {
 			parent.refresh();
@@ -230,16 +276,21 @@ class Window {
 		}
 		return this;
 	}
-	/// @}
 	/// @cond NoDoc
-	alias put print;
+	alias print = put;
 	/// @endcond
+	/// @}
 
-	/// @name Window background
-	/// @{
-	/** @fn bkgd(TextAttribute[] attr ...)
-	 * @brief Apply a set of attributes to the background of a window
+	/**
+	 * @name Window background
+	 * @{
+	 */
+	/**
+	 * Apply a set of attributes to the background of a window
+	 *
+	 * @fn bkgd(TextAttribute[] attrs ...)
 	 * @param attrs The attributes to apply
+	 * @return this
 	*/
 	auto bkgd(TextAttribute[] attrs ...) {
 		foreach(attr;attrs) {
@@ -247,13 +298,31 @@ class Window {
 		}
 		return this;
 	}
+	/**
+	 * Set the background character
+	 *
+	 * @fn bkgd(char c)
+	 * @param c The new background character
+	 * @return this
+	*/
 	auto bkgd(char c) {
 		nc.wbkgdset(m_raw, (nc.getbkgd(m_raw)&~nc.A_CHARTEXT)|c);
 		return this;
 	}
+	/**
+	 * Apply a set of attributes and background character to a window
+	 *
+	 * @fn bkgd(char c, TextAttribute[] attrs ...)
+	*/
 	auto bkgd(char c, TextAttribute[] attrs ...) {
 		return bkgd(c).bkgd(attrs);
 	}
+	/**
+	 * Retrieve the background information from a character
+	 *
+	 * @fn bkgd()
+	 * @return The background information
+	*/
 	auto bkgd() {
 		return nc.getbkgd(m_raw);
 	}
@@ -266,6 +335,7 @@ class Window {
 
 	/**
 	 * Get a single keypress
+	 *
 	 * @return The pressed key
 	 */
 	auto getch() {
@@ -275,10 +345,13 @@ class Window {
 	mixin MoveWrapper!"getch";
 	/// @endcond
 
-	/** Get a string from the window
-	 * @return The string input by the user
+	/**
+	 * Get a string from the window
+	 *
+	 * @todo Rewrite to better handle edge cases
+	 * @return The string entered by the user
 	 */
-	char[] getstr() {
+	string getstr() {
 		// Get as much data as possible
 		// Make sure not to output directly
 		bool tmpecho = echo(false);
@@ -314,8 +387,14 @@ class Window {
 				}
 			}
 		}
-		return ret.dup;
+		return ret.idup;
 	}
+	/**
+	 * Get a string from the window
+	 *
+	 * @param maxlen The maximum length of a string to get
+	 * @return The string entered by the user
+	 */
 	string getstr(int maxlen) {
 		// We know the max length
 		char[] ret = new char[maxlen];
@@ -332,7 +411,13 @@ class Window {
 	/// @endcond
 
 
-	// Updating
+	/**
+	 * @name Updating
+	 * @{
+	 */
+	/**
+	 * Refresh the window display
+	 */
 	void refresh() {
 		if(parent !is null) {
 			parent.refresh();
@@ -341,50 +426,100 @@ class Window {
 			throw new NCursesException("Could not refresh window");
 		}
 	}
-	auto erase() {
-		return nc.werase(m_raw);
+	/**
+	 * Blank out the window
+	 */
+	void erase() {
+		if(nc.werase(m_raw) != nc.OK) {
+			throw new NCursesException("Could not erase window");
+		}
 	}
-	auto clear() {
-		return nc.wclear(m_raw);
+	/**
+	 * Blank out the window and repaint on next refresh
+	 */
+	void clear() {
+		if(nc.wclear(m_raw) != nc.OK) {
+			throw new NCursesException("Could not erase window");
+		}
 	}
-	auto clrtobot() {
-		return nc.wclrtobot(m_raw);
+	/**
+	 * Blank out the window from the cursor to the end of the screen
+	 */
+	void clrtobot() {
+		if(nc.wclrtobot(m_raw) != nc.OK) {
+			throw new NCursesException("Could not erase window");
+		}
 	}
-	auto clrtoeol() {
-		return nc.wclrtoeol(m_raw);
-	}
-	auto touch() {
-		return nc.touchwin(m_raw);
-	}
-	auto touch(int start, int count) {
-		return nc.touchline(m_raw, start, count);
-	}
-	auto sync() {
-		return nc.wsyncup(m_raw);
-	}
-	auto syncok(bool isOk) {
-		return nc.syncok(m_raw, isOk);
+	/**
+	 * Blank out the window from the cursor to the end of the line
+	 */
+	void clrtoeol() {
+		if(nc.wclrtoeol(m_raw) != nc.OK) {
+			throw new NCursesException("Could not erase window");
+		}
 	}
 
-	/** @brief Allow or disable scrolling
+	/**
+	 * Tell the window to redraw everything
+	 */
+	void touch() {
+		if(nc.touchwin(m_raw) != nc.OK) {
+			throw new NCursesException("Error touching window");
+		}
+	}
+	/**
+	 * Tell the window to redraw a specific area
+	 *
+	 * @param start The starting line number
+	 * @param count The number of lines to touch
+	 */
+	void touch(int start, int count) {
+		if(nc.touchline(m_raw, start, count) != nc.OK) {
+			throw new NCursesException("Error touching lines");
+		}
+	}
+	/**
+	 * Touch all parent locations that are changed in win
+	 */
+	void sync() {
+		nc.wsyncup(m_raw);
+	}
+	/**
+	 * Automatically call sync when the window is updated
+	 *
+	 * @param isOk true to automatically sync, false otherwise
+	 * @return isOk
+	 */
+	bool syncok(bool isOk) @property {
+		if(nc.syncok(m_raw, isOk) != nc.OK) {
+			throw new NCursesException("Error setting sync status");
+		}
+		return isOk;
+	}
+	/// @}
 
-		Tell the window whether it is allowed to scroll upon print
-
-		@param isOk Whether scrolling is allowed or not
-	*/
-	@property void scrollok(bool isOk) {
+	/**
+	 * Allow or disable scrolling
+	 *
+	 * Tell the window whether it is allowed to scroll upon print
+	 *
+	 * @param isOk Whether scrolling is allowed or not
+	 */
+	void scrollok(bool isOk) @property {
 		nc.scrollok(m_raw, isOk);
 	}
 
 
-	/// @name Movement and Coordinates
-	/// @{
 	/**
-	 * @brief Move the cursor position
+	 * @name Movement and Coordinates
+	 * @{
+	 */
+	/**
+	 * Move the cursor position
 	 *
 	 * @param y The row to move to
 	 * @param x The column to move to
-	*/
+	 */
 	void cursor(int y, int x) {
 		if(nc.wmove(m_raw,y,x) != nc.OK) {
 			throw new NCursesException("Could not move cursor to correct location");
@@ -401,14 +536,14 @@ class Window {
 	mixin Coord!"par";
 
 	/**
-	 * @brief Move the current window
+	 * Move the current window
 	 *
 	 * The current window is moved relative to the screen.
 	 * Coordinates are given for the top left corner of the window
 	 *
 	 * @param y The row to move to
 	 * @param x The column to move to
-	*/
+	 */
 	void move(int y, int x) {
 		if(parent !is null) {
 			parent.refresh();
@@ -421,11 +556,13 @@ class Window {
 	/// @}
 
 
-	/// @name Borders
-	/// @{
+	/**
+	 * @name Borders
+	 * @{
+	 */
 
 	/**
-	 * @brief Create a border around the current window
+	 * Create a border around the current window
 	 *
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
@@ -438,7 +575,7 @@ class Window {
 	 * @param tr The character to use for the top right corner. Default to ACS.URCORNER
 	 * @param bl The character to use for the bottom left corner. Default to ACS.LLCORNER
 	 * @param br The character to use for the bottom right corner. Default to ACS.LRCORNER
-	*/
+	 */
 	void border(CharType ls = 0, CharType rs = 0, CharType ts = 0, CharType bs = 0,
 		CharType tl = 0, CharType tr = 0, CharType bl = 0, CharType br = 0)
 	{
@@ -451,7 +588,7 @@ class Window {
 		this.refresh();
 	}
 	/**
-	 * @brief Create a box around the current window
+	 * Create a box around the current window
 	 *
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
@@ -475,15 +612,15 @@ class Window {
 
 	// Flags
 	/// Is this a sub-window?
-	@property @safe nothrow bool subwin() const {return (m_raw.flags & nc._SUBWIN) != 0;}
+	bool subwin() @property @safe nothrow const {return (m_raw.flags & nc._SUBWIN) != 0;}
 	/// Is the window flush right?
-	@property @safe nothrow bool endline() const {return (m_raw.flags & nc._ENDLINE) != 0;}
+	bool endline() @property @safe nothrow const {return (m_raw.flags & nc._ENDLINE) != 0;}
 	/// Is the window full-screen?
-	@property @safe nothrow bool fullwin() const {return (m_raw.flags & nc._FULLWIN) != 0;}
+	bool fullwin() @property @safe nothrow const {return (m_raw.flags & nc._FULLWIN) != 0;}
 	/// Bottom edge is at screen bottom?
-	@property @safe nothrow bool scrollwin() const {return (m_raw.flags & nc._SCROLLWIN) != 0;}
+	bool scrollwin() @property @safe nothrow const {return (m_raw.flags & nc._SCROLLWIN) != 0;}
 	/// Has cursor moved since last refresh?
-	@property @safe nothrow bool hasmoved() const {return (m_raw.flags & nc._HASMOVED) != 0;}
+	bool hasmoved() @property @safe nothrow const {return (m_raw.flags & nc._HASMOVED) != 0;}
 	/// Cursor was just wrappped
-	@property @safe nothrow bool wrapped() const {return (m_raw.flags & nc._WRAPPED) != 0;}
+	bool wrapped() @property @safe nothrow const {return (m_raw.flags & nc._WRAPPED) != 0;}
 }
