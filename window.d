@@ -213,9 +213,10 @@ class Window {
 			throw new NCursesException("Error deleting a character");
 		}
 	}
-	/// @cond NoDoc
-	mixin MoveWrapper!"delch";
-	/// @endcond
+	void delch(Pos p...) {
+		this.cursor(p.y, p.x);
+		this.delch();
+	}
 
 
 	/**
@@ -341,9 +342,10 @@ class Window {
 	auto getch() {
 		return nc.wgetch(m_raw);
 	}
-	/// @cond NoDoc
-	mixin MoveWrapper!"getch";
-	/// @endcond
+	auto getch(Pos p...) {
+		this.cursor(p.y, p.x);
+		return this.getch();
+	}
 
 	/**
 	 * Get a string from the window

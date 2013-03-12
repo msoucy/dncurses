@@ -128,10 +128,10 @@ struct ACS {
 
 /// Position structure
 struct Pos {
-	/// The x coordinate (column)
-	immutable int x;
 	/// The y coordinate (row)
-	immutable int y;
+	int y;
+	/// The x coordinate (column)
+	int x;
 	/**
 	 * Create a position
 	 *
@@ -139,8 +139,8 @@ struct Pos {
 	 * @param _x The x coordinate (column)
 	 */
 	this(int _y, int _x) nothrow {
-		this.x = _x;
 		this.y = _y;
+		this.x = _x;
 	}
 }
 
