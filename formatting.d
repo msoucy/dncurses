@@ -96,7 +96,7 @@ public:
 	}
 
 	/// @cond NoDoc
-	alias this = m_str;
+	alias m_str this;
 
 	/// Allow assignment concatenation with a string
 	ref AttributeString opOpAssign(string op:"~")(string s) @property @safe pure nothrow {
