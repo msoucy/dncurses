@@ -114,9 +114,9 @@ struct Key {
 }
 
 /**
- * ACS name wrapper
+ * ACS (alternative character set) name wrapper
  *
- * Allows the use of ACS.name instead of ACS_NAME to get alternative character sets
+ * Allows the use of ACS.Name instead of ACS_NAME to get alternative character sets
  */
 struct ACS {
 	@disable this();
@@ -132,6 +132,10 @@ struct Pos {
 	int y;
 	/// The x coordinate (column)
 	int x;
+	/// The row - an alias for y
+	alias row = y;
+	/// The column - an alias for x
+	alias col = x;
 	/**
 	 * Create a position
 	 *
@@ -160,7 +164,11 @@ void typeahead(File fd) {
 	}
 }
 
-/// @cond NoDoc
-alias nc.killchar killchar;
-alias nc.erasechar erasechar;
-/// @endcond
+/// Get the "kill" character
+auto killchar() @property {
+	return nc.killchar();
+}
+/// Get the "erase" character
+auto erasechar() @property {
+	return nc.erasechar();
+}

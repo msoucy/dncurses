@@ -141,12 +141,13 @@ private static Mode currMode;
  * Set the current mode to a new mode
  *
  * @param m The new mode to use
+ * @return The new mode
  */
-void mode(Mode m) @property {
+Mode mode(Mode m) @property {
 	if(m is null || m.apply() != nc.OK) {
 		throw new NCursesException("Could not change to mode: "~m.to!string());
 	}
-	currMode = m;
+	return currMode = m;
 }
 
 /**

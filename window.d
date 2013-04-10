@@ -15,6 +15,7 @@ import std.algorithm : canFind;
 import std.conv : to;
 public import metus.dncurses.base;
 public import metus.dncurses.formatting;
+import metus.dncurses.mode;
 /// @endcond
 
 
@@ -43,14 +44,6 @@ class Window {
 				return mixin("Pos(m_raw."~name~"y, m_raw."~name~"x)");
 			}
 			mixin("alias Coord "~name~";");
-		}
-
-		mixin template MoveWrapper(string Func) {
-			auto MoveWrapper(T...)(int y, int x, T t) {
-				this.cursor(y,x);
-				return mixin(Func~"(t)");
-			}
-			mixin("alias MoveWrapper mv"~Func~";");
 		}
 	}
 
@@ -213,9 +206,23 @@ class Window {
 			throw new NCursesException("Error deleting a character");
 		}
 	}
-	void delch(Pos p...) {
-		this.cursor(p.y, p.x);
+	/**
+	 * Delete a character
+	 *
+	 * @param row The row of the character to move to
+	 * @param col The column of the character to move to
+	 */
+	void delch(int row, int col) {
+		this.cursor(row, col);
 		this.delch();
+	}
+	/**
+	 * Delete a character
+	 *
+	 * @param pos The position of the character to move to
+	 */
+	void delch(Pos pos) {
+		delch(pos.y, pos.x);
 	}
 
 
@@ -342,54 +349,141 @@ class Window {
 	auto getch() {
 		return nc.wgetch(m_raw);
 	}
-	auto getch(Pos p...) {
-		this.cursor(p.y, p.x);
+	/**
+	 * Get a single keypress
+	 *
+	 * Moves to a given position before getting the character
+	 *
+	 * @param row The row to move to
+	 * @param col The column to move to
+	 * @return The pressed key
+	 */
+	auto getch(int row, int col) {
+		this.cursor(row, col);
 		return this.getch();
+	}
+	/**
+	 * Get a single keypress
+	 *
+	 * Moves to a given position before getting the character
+	 *
+	 * @param p The position to move to
+	 * @return The pressed key
+	 */
+	auto getch(Pos p) {
+		return this.getch(p.y, p.x);
 	}
 
 	/**
 	 * Get a string from the window
 	 *
-	 * @todo Rewrite to better handle edge cases
 	 * @return The string entered by the user
 	 */
 	string getstr() {
-		// Get as much data as possible
 		// Make sure not to output directly
-		bool tmpecho = echo(false);
-		scope(exit) echo(tmpecho);
+		auto oldecho = echo(false);
+		scope(exit) echo(oldecho);
+		auto oldmode = mode;
+		mode = Cooked(SetFlags.Yes);
+		mode = CBreak();
+		scope(exit) mode = oldmode;
 
-		char[] ret;
-		int buf;
-		bool isKill(int ch) {
-			return (currKeypad
-					? [nc.killchar(), nc.erasechar(), Key.Left, Key.Backspace]
-					: [cast(int)nc.killchar(), cast(int)nc.erasechar()]
-				).canFind(ch);
+		if (nc.is_wintouched(m_raw) || this.hasmoved) {
+			nc.wrefresh(m_raw);
 		}
-		bool isEnd(int ch) {return "\r\n\x04".canFind(ch);}
-		while((buf=nc.getch()),!isEnd(buf)) {
-			if(isKill(buf)) {
-				if(ret.length) {
-					ret = ret[0..($-1)];
-					if(tmpecho) {
-						if(cur.x) {
-							cursor(cur.y, cur.x-1);
-							delch();
-						} else {
-							cursor(cur.y-1, max.x);
-							delch();
-						}
+
+		char[] str;
+		CharType ch;
+		int y = this.cur.y;
+		int x = this.cur.x;
+
+		void WipeOut()
+		{
+			// Adapted from the original ncurses' WipeOut.
+			// This one uses the external scope to make it simpler
+			if (str.length) {
+				str.length -= 1;
+				if (oldecho) {
+					auto oldpos = this.cur;
+
+					this.put(Pos(y, x), str);
+					auto newpos = this.cur;
+					// Clear the removed character
+					while (this.cur.y < oldpos.y || (this.cur.y == oldpos.y && this.cur.x < oldpos.x)) {
+						nc.waddch(m_raw, ' ');
 					}
-				}
-			} else {
-				ret ~= cast(char)buf;
-				if(tmpecho) {
-					put(cast(char)buf);
+					// Go back to the correct position
+					this.cursor(newpos);
 				}
 			}
 		}
-		return ret.idup;
+
+		auto erasech = erasechar();
+		auto killch = killchar();
+
+		/**
+		 * This is also translated/partially transliterated from the original ncurses' getnstr
+		 * This is the only way that I can see to get the same behavior with dynamic strings
+		 */
+		while ((ch = nc.wgetch(m_raw)) != nc.ERR) {
+			/*
+			 * Some terminals (the Wyse-50 is the most common) generate
+			 * a \n from the down-arrow key.  With this logic, it's the
+			 * user's choice whether to set kcud=\n for wgetch();
+			 * terminating *getstr() with \n should work either way.
+			 */
+			if (['\n', '\r', Key.Down, Key.Enter].canFind(ch)) {
+				if (oldecho && this.cur.y == this.max.y && m_raw.scroll) {
+					nc.wechochar(m_raw, '\n');
+				}
+				break;
+			}
+			if ([Key.Event, Key.Resize].canFind(ch)) {
+				break;
+			}
+
+			if ([erasech, Key.Left, Key.Backspace].canFind(ch)) {
+				// Remove the last character
+				WipeOut();
+			} else if (ch == killch) {
+				// "Undo" printing the created string
+				while (str.length) {
+					WipeOut();
+				}
+			} else if (ch >= Key.Min) {
+				// Control character
+				nc.beep();
+			} else {
+				str ~= cast(char) ch;
+				if (oldecho) {
+					int oldy = this.cur.y;
+					if (nc.waddch(m_raw, ch) == nc.ERR) {
+						/*
+						 * We can't really use the lower-right
+						 * corner for input, since it'll mess
+						 * up bookkeeping for erases.
+						 */
+						m_raw.flags &= ~nc._WRAPPED;
+						nc.waddch(m_raw, ' ');
+						WipeOut();
+						continue;
+					} else if (m_raw.flags & nc._WRAPPED) {
+						/*
+						 * If the last waddch forced a wrap &
+						 * scroll, adjust our reference point
+						 * for erasures.
+						 */
+						if (m_raw.scroll && oldy == this.max.y && this.cur.y == this.max.y) {
+							y = (y ? (y-1) : 0);
+						}
+						m_raw.flags &= ~nc._WRAPPED;
+					}
+					nc.wrefresh(m_raw);
+				}
+			}
+		}
+
+		return str.idup;
 	}
 	/**
 	 * Get a string from the window
@@ -408,9 +502,58 @@ class Window {
 			throw new NCursesException("Error receiving input");
 		}
 	}
-	/// @cond NoDoc
-	mixin MoveWrapper!"getstr";
-	/// @endcond
+	/**
+	 * Get a string from the window
+	 *
+	 * Moves to a given position before getting the string
+	 *
+	 * @param row The row to move to
+	 * @param col The column to move to
+	 * @return The string entered by the user
+	 */
+	auto getstr(int row, int col) {
+		this.cursor(row, col);
+		return this.getstr();
+	}
+	/**
+	 * Get a string from the window
+	 *
+	 * Moves to a given position before getting the string
+	 *
+	 * @param row The row to move to
+	 * @param col The column to move to
+	 * @param maxlen The maximum length of a string to get
+	 * @return The string entered by the user
+	 */
+	auto getstr(int row, int col, int maxlen) {
+		this.cursor(row, col);
+		return this.getstr(maxlen);
+	}
+	/**
+	 * Get a string from the window
+	 *
+	 * Moves to a given position before getting the string
+	 *
+	 * @param p The position to move to
+	 * @return The string entered by the user
+	 */
+	auto getstr(Pos p) {
+		this.cursor(p.y, p.x);
+		return this.getstr();
+	}
+	/**
+	 * Get a string from the window
+	 *
+	 * Moves to a given position before getting the string
+	 *
+	 * @param p The position to move to
+	 * @param maxlen The maximum length of a string to get
+	 * @return The string entered by the user
+	 */
+	auto getstr(Pos p, int maxlen) {
+		this.cursor(p.y, p.x);
+		return this.getstr(maxlen);
+	}
 
 
 	/**
@@ -526,6 +669,9 @@ class Window {
 		if(nc.wmove(m_raw,y,x) != nc.OK) {
 			throw new NCursesException("Could not move cursor to correct location");
 		}
+	}
+	void cursor(Pos p) {
+		cursor(p.y, p.x);
 	}
 
 	/// Get the current position
