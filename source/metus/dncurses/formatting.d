@@ -1,25 +1,32 @@
-/**
- * @file formatting.d
- * @brief Structures and functions for attributes and formatting
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Nov 12, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * Structures and functions for attributes and formatting
+ *
+ * Authors: Matthew Soucy, msoucy@csh.rit.edu
+ * Date, Nov 12, 2012
+ * Version, 0.0.1
  */
-/// Structures and functions for attributes and formatting
 module metus.dncurses.formatting;
 
-/// @cond NoDoc
 import std.traits;
 public import metus.dncurses.base;
-/// @endcond
 
+
+/// Basic interface for Text Attributes
+package interface TextAttribute {
+public:
+	/// Apply an attribute to a window
+	void apply(nc.WINDOW*);
+	/// Apply an attribute to a window's background
+	void bkgd(nc.WINDOW*);
+}
 
 /**
  * Create a vertical line
  *
- * @param ch The character to print
- * @param n The length of the line
- * @return A TextAttribute that generates a horizontal line
+ * Params:
+ * 		ch	=	The character to print
+ * 		n	=	The length of the line
+ * Returns: A TextAttribute that generates a horizontal line
  */
 TextAttribute vline(CharType ch, int n) pure nothrow {
 	return new class TextAttribute {
@@ -35,9 +42,10 @@ TextAttribute vline(CharType ch, int n) pure nothrow {
 /**
  * Create a horizontal line
  *
- * @param ch The character to print
- * @param n The length of the line
- * @return A TextAttribute that generates a vertical line
+ * Params:
+ * 		ch	=	The character to print
+ * 		n	=	The length of the line
+ * Returns: A TextAttribute that generates a vertical line
  */
 TextAttribute hline(CharType ch, int n) pure nothrow {
 	return new class TextAttribute {
@@ -65,7 +73,8 @@ public:
 	/**
 	 * Create a new AttributeString
 	 *
-	 * @param s The D string to use as a source
+	 * Params:
+	 * 		s	=	The D string to use as a source
 	 */
 	this(string s) @safe pure {
 		m_str = s.idup;
@@ -73,7 +82,7 @@ public:
 	/**
 	 * Get the attributes to enable
 	 *
-	 * @return A compound of all attributes to enable
+	 * Returns: A compound of all attributes to enable
 	 */
 	nc.attr_t attr() @property @safe pure nothrow const {
 		return m_attr;
@@ -81,7 +90,7 @@ public:
 	/**
 	 * Get the attributes to disable
 	 *
-	 * @return A compound of all attributes to disable
+	 * Returns: A compound of all attributes to disable
 	 */
 	nc.attr_t attrDisable() @property @safe pure nothrow const {
 		return m_noattr;
@@ -89,13 +98,12 @@ public:
 	/**
 	 * Get the raw string
 	 *
-	 * @return The basic string without formatting
+	 * Returns: The basic string without formatting
 	 */
 	string str() @property @safe pure nothrow const {
 		return m_str;
 	}
 
-	/// @cond NoDoc
 	alias m_str this;
 
 	/// Allow assignment concatenation with a string
@@ -123,16 +131,6 @@ public:
 		ret ~= s;
 		return ret;
 	}
-	/// @endcond
-}
-
-/// Basic interface for Text Attributes
-package interface TextAttribute {
-public:
-	/// Apply an attribute to a window
-	void apply(nc.WINDOW*);
-	/// Apply an attribute to a window's background
-	void bkgd(nc.WINDOW*);
 }
 
 private mixin template AttributeProperty(string name, string realname=name) {
@@ -219,7 +217,7 @@ private mixin template AttributeProperty(string name, string realname=name) {
 /**
  * Clear all attributes from a window
  *
- * @return An attribute object that a Window uses to clear attributes
+ * Returns: An attribute object that a Window uses to clear attributes
  */
 TextAttribute attrclear() @property pure nothrow {
 	return new class TextAttribute {
@@ -237,22 +235,20 @@ TextAttribute attrclear() @property pure nothrow {
 	};
 }
 
-/// @cond NoDoc
-mixin AttributeProperty!"standout"; ///< Creates standout attribute
-mixin AttributeProperty!"underline"; ///< Creates underline attribute
-mixin AttributeProperty!("invert","reverse"); ///< Creates reversed attribute
-mixin AttributeProperty!"blink"; ///< Creates blink attribute
-mixin AttributeProperty!"dim"; ///< Creates dim attribute
-mixin AttributeProperty!"bold"; ///< Creates bold attribute
-mixin AttributeProperty!"invis"; ///< Creates invisible attributes
-mixin AttributeProperty!"protect"; ///< Creates attribute to protect a character
-mixin AttributeProperty!"horizontal"; ///< Creates an extension attribute
-mixin AttributeProperty!"left"; ///< Creates an extension attribute
-mixin AttributeProperty!"low"; ///< Creates an extension attribute
-mixin AttributeProperty!"right"; ///< Creates an extension attribute
-mixin AttributeProperty!"top"; ///< Creates an extension attribute
-mixin AttributeProperty!"vertical"; ///< Creates an extension attribute
-/// @endcond
+mixin AttributeProperty!"standout"; /// Creates standout attribute
+mixin AttributeProperty!"underline"; /// Creates underline attribute
+mixin AttributeProperty!("invert","reverse"); /// Creates reversed attribute
+mixin AttributeProperty!"blink"; /// Creates blink attribute
+mixin AttributeProperty!"dim"; /// Creates dim attribute
+mixin AttributeProperty!"bold"; /// Creates bold attribute
+mixin AttributeProperty!"invis"; /// Creates invisible attributes
+mixin AttributeProperty!"protect"; /// Creates attribute to protect a character
+mixin AttributeProperty!"horizontal"; /// Creates an extension attribute
+mixin AttributeProperty!"left"; /// Creates an extension attribute
+mixin AttributeProperty!"low"; /// Creates an extension attribute
+mixin AttributeProperty!"right"; /// Creates an extension attribute
+mixin AttributeProperty!"top"; /// Creates an extension attribute
+mixin AttributeProperty!"vertical"; /// Creates an extension attribute
 
 ////////////////////////////////////////////////////////////////////////////////
 // Colors
@@ -261,14 +257,14 @@ mixin AttributeProperty!"vertical"; ///< Creates an extension attribute
 /// All colors used by ncurses
 immutable enum Color : short
 {
-	BLACK   = 0,
-	RED     = 1,
-	GREEN   = 2,
-	YELLOW  = 3,
-	BLUE    = 4,
-	MAGENTA = 5,
-	CYAN    = 6,
-	WHITE   = 7
+	BLACK   = 0, /// Black
+	RED     = 1, /// Red
+	GREEN   = 2, /// Green
+	YELLOW  = 3, /// Yellow
+	BLUE    = 4, /// Blue
+	MAGENTA = 5, /// Magenta
+	CYAN    = 6, /// Cyan
+	WHITE   = 7, /// White
 }
 
 private {
@@ -281,7 +277,7 @@ private {
 /**
  * Detect color support
  *
- * @return true if colors can be used, false otherwise
+ * Returns: true if colors can be used, false otherwise
  */
 bool hasColors() {
 	return nc.has_colors();
@@ -313,31 +309,19 @@ void initColor() {
 
 
 /**
- * @name Set foreground color
- * @param str The string to apply the color to
- * @param c The color to apply to the foreground
- * @{
- */
-/**
  * Set foreground color on a string
  *
- * @param str The string to apply the color to
- * @param c The color to apply
- * @return An attribute string with the new foreground applied
+ * Params:
+ * 		str	=	The string to apply the color to
+ * 		c	=	The color to apply
+ * Returns: An attribute string with the new foreground applied
  */
 AttributeString fg(AttributeString str, short c) @property @safe pure nothrow {
 	str.m_noattr |= FG_MASK;
 	str.m_attr = (str.m_attr & ~FG_MASK) | (c<<FG_SHIFT);
 	return str;
 }
-
-/**
- * Set foreground color on a string
- *
- * @param str The string to apply the color to
- * @param c The color to apply
- * @return An attribute string with the new foreground applied
- */
+/// ditto
 AttributeString fg(string str, short c) @property @safe pure {
 	return AttributeString(str).fg(c);
 }
@@ -345,8 +329,9 @@ AttributeString fg(string str, short c) @property @safe pure {
 /**
  * Set foreground color on a window
  *
- * @param c The color to apply
- * @return A text attribute object that the window evaluates
+ * Params:
+ * 		c	=	The color to apply
+ * Returns: A text attribute object that the window evaluates
  */
 TextAttribute fg(short c) @property pure nothrow {
 	return new class TextAttribute {
@@ -362,30 +347,20 @@ TextAttribute fg(short c) @property pure nothrow {
 		}
 	};
 }
-/// @}
 
-/**
- * @name Remove background color
- * @{
- */
 /**
  * Remove foreground color from a string
  *
- * @param str The string to remove the color from
- * @return An attribute string with the foreground removed
+ * Params:
+ * 		str	=	The string to remove the color from
+ * Returns: An attribute string with the foreground removed
  */
 AttributeString nofg(AttributeString str) @property @safe pure nothrow {
 	str.m_noattr |= FG_MASK;
 	str.m_attr &= ~FG_MASK;
 	return str;
 }
-
-/**
- * Remove foreground color from a string
- *
- * @param str The string to remove the color from
- * @return An attribute string with the foreground removed
- */
+/// ditto
 AttributeString nofg(string str) @property @safe pure {
 	return AttributeString(str).nofg();
 }
@@ -393,7 +368,7 @@ AttributeString nofg(string str) @property @safe pure {
 /**
  * Remove foreground color from a window
  *
- * @return A text attribute object that the window evaluates
+ * Returns: A text attribute object that the window evaluates
  */
 TextAttribute nofg() @property pure nothrow {
 	return new class TextAttribute {
@@ -409,34 +384,21 @@ TextAttribute nofg() @property pure nothrow {
 		}
 	};
 }
-/// @}
 
-/**
- * @name Set background color
- * @param str The string to apply the color to
- * @param c The color to apply to the background
- * @{
- */
 /**
  * Set background color on a string
  *
- * @param str The string to apply the color to
- * @param c The color to apply
- * @return An attribute string with the new background applied
+ * Params:
+ * 		str	=	The string to apply the color to
+ * 		c	=	The color to apply
+ * Returns: An attribute string with the new background applied
  */
 AttributeString bg(AttributeString str, short c) @property @safe pure nothrow {
 	str.m_noattr |= BG_MASK;
 	str.m_attr = (str.m_attr & ~BG_MASK) | (c<<BG_SHIFT);
 	return str;
 }
-
-/**
- * Set background color on a string
- *
- * @param str The string to apply the color to
- * @param c The color to apply to the background
- * @return An attribute string with the new background applied
- */
+/// ditto
 AttributeString bg(string str, short c) @property @safe pure {
 	return AttributeString(str).bg(c);
 }
@@ -444,8 +406,9 @@ AttributeString bg(string str, short c) @property @safe pure {
 /**
  * Set background color on a window
  *
- * @param c The color to apply
- * @return A text attribute object that the window evaluates
+ * Params:
+ * 		c	=	The color to apply
+ * Returns: A text attribute object that the window evaluates
  */
 TextAttribute bg(short c) @property pure nothrow {
 	return new class TextAttribute {
@@ -461,30 +424,20 @@ TextAttribute bg(short c) @property pure nothrow {
 		}
 	};
 }
-/// @}
 
-/**
- * @name Remove background color
- * @{
- */
 /**
  * Removes background color from a string
  *
- * @param str The string to remove the color from
- * @return An attribute string with the background removed
+ * Params:
+ * 		str	=	The string to remove the color from
+ * Returns: An attribute string with the background removed
  */
 AttributeString nobg(AttributeString str) @property @safe pure nothrow {
 	str.m_noattr |= BG_MASK;
 	str.m_attr &= ~BG_MASK;
 	return str;
 }
-
-/**
- * Removes background color from a string
- *
- * @param str The string to remove the color from
- * @return An attribute string with the background removed
- */
+/// ditto
 AttributeString nobg(string str) @property @safe pure {
 	return AttributeString(str).nobg();
 }
@@ -492,7 +445,7 @@ AttributeString nobg(string str) @property @safe pure {
 /**
  * Remove background color from a window
  *
- * @return A text attribute object that the window evaluates
+ * Returns: A text attribute object that the window evaluates
  */
 TextAttribute nobg() @property pure nothrow {
 	return new class TextAttribute {
@@ -508,22 +461,20 @@ TextAttribute nobg() @property pure nothrow {
 		}
 	};
 }
-/// @}
 
 /**
- * @name Set colors on a string
- * @param str The string to apply the color to
- * @param f The color to apply to the foreground
- * @param b The color to apply to the background
- * @return An AttributeString with the colors applied
- * @{
+ * Set colors on a string
+ *
+ * Params:
+ * 		str	=	The string to apply the color to
+ * 		f	=	The color to apply to the foreground
+ * 		b	=	The color to apply to the background
+ * Returns: An AttributeString with the colors applied
  */
-
 AttributeString color(AttributeString str, short f, short b) @safe pure nothrow {
 	return str.fg(f).bg(b);
 }
+/// ditto
 AttributeString color(string str, short f, short b) @safe pure {
 	return AttributeString(str).fg(f).bg(b);
 }
-
-/// @}

@@ -1,15 +1,15 @@
-/**
- * @file base.d
- * @brief D ncurses basic functionality
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Nov 12, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * Basic ncurses functionality
+ *
+ * Core functions that don't depend on any other ncurses functionality
+ *
+ * Authors: Matthew Soucy, msoucy@csh.rit.edu
+ * Date: Nov 12, 2012
+ * Version: 0.0.1
  */
-/// D ncurses basic functionality
 module metus.dncurses.base;
 
 
-/// @cond NoDoc
 import std.string : toUpper, strlen;
 import std.stdio : File;
 public import metus.dncurses.errors;
@@ -18,7 +18,7 @@ package import nc = deimos.ncurses.ncurses;
 /**
  * Get the ncurses version
  *
- * @return The version number as a string
+ * Returns: The version number as a string
  */
 char[] ncurses_version() {
 	char* ver = nc.curses_version();
@@ -26,21 +26,16 @@ char[] ncurses_version() {
 }
 
 
-// Character type from Deimos
+/// Character type from Deimos
 alias CharType = nc.chtype;
-// Stores whether ncurses is in echo mode or not
+/// Stores whether ncurses is in echo mode or not
 private static bool isEcho;
-/// @endcond
 
 
-/**
- * @name Handle echo modes
- * @{
- */
 /**
  * Get echo mode
  *
- * @return The current echo mode
+ * Returns: The current echo mode
  */
 bool echo() @safe @property nothrow {
 	return isEcho;
@@ -48,8 +43,9 @@ bool echo() @safe @property nothrow {
 /**
  * Change echo mode
  *
- * @param echoOn Whether echo should be enabled
- * @return The old echo mode
+ * Params:
+ * 		echoOn	=	Whether echo should be enabled
+ * Returns: The old echo mode
  */
 bool echo(bool echoOn) @property {
 	bool currEcho = isEcho;
@@ -58,7 +54,6 @@ bool echo(bool echoOn) @property {
 	}
 	return currEcho;
 }
-/// @}
 
 
 /**
@@ -67,7 +62,8 @@ bool echo(bool echoOn) @property {
  * Control flushing of input and output queues when an interrupt, quit,
  * or suspend character is sent to the terminal.
  *
- * @param shouldFlush Enable (true) or disable (false) flushing
+ * Params:
+ * 		shouldFlush	=	Enable (true) or disable (false) flushing
  */
 void qiflush(bool shouldFlush) @property {
 	if(shouldFlush) {
@@ -86,7 +82,8 @@ void qiflush(bool shouldFlush) @property {
  * FALSE, then no flushing of the buffer will occur when an interrupt key
  * is pressed.
  *
- * @param shouldFlush Enable (true) or disable (false) flushing
+ * Params:
+ * 		shouldFlush	=	Enable (true) or disable (false) flushing
  */
 void intrflush(bool shouldFlush) @property {
 	// nc.intrflush ignores the window parameter...
@@ -105,10 +102,12 @@ struct Key {
 	/// Map key names to their deimos values
 	template opDispatch(string key)
 	{
-		static if(key.toUpper()[0] == 'F' && key.length > 1 && (key[1]>'0'&&key[1]<='9')) {
-			enum opDispatch = mixin("nc.KEY_F("~key[1..$]~")");
-		} else {
-			enum opDispatch = mixin("nc.KEY_"~key.toUpper());
+		static if(key.length > 0) {
+			static if(key.toUpper()[0] == 'F' && (key[1]>'0'&&key[1]<='9')) {
+				enum opDispatch = mixin("nc.KEY_F("~key[1..$]~")");
+			} else {
+				enum opDispatch = mixin("nc.KEY_"~key.toUpper());
+			}
 		}
 	}
 }
@@ -139,8 +138,8 @@ struct Pos {
 	/**
 	 * Create a position
 	 *
-	 * @param _y The y coordinate (row)
-	 * @param _x The x coordinate (column)
+	 * 		_y	=	The y coordinate (row)
+	 * 		_x	=	The x coordinate (column)
 	 */
 	this(int _y, int _x) nothrow {
 		this.y = _y;

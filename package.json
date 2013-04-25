@@ -1,0 +1,13 @@
+{
+	"name": "dncurses",
+	"description": "High-level D wrappers for common ncurses functionality",
+	"homepage": "http://github.com/msoucy/dncurses",
+	"copyright": "Copyright © 2013, Matt Soucy",
+	"license": "MIT (Expat) License",
+	"authors": [
+		"Matt Soucy"
+	],
+	"dependencies": {
+		"ncurses":"~master"
+	}
+}

@@ -1,18 +1,13 @@
-/**
- * @file errors.d
- * @brief D ncurses errors
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Nov 12, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * D ncurses errors
+ *
+ * Authors: Matthew Soucy, msoucy@csh.rit.edu
+ * Date: Nov 12, 2012
+ * Version: 0.0.1
  */
-/// D ncurses basic functionality
 module metus.dncurses.errors;
 
-
-/// @cond NoDoc
 package import eti = deimos.ncurses.eti;
-/// @endcond
-
 
 /**
  * Ncurses error class
@@ -24,9 +19,10 @@ public:
 	/**
 	 * Create and automatically initialize an NCursesException
 	 *
-	 * @param _msg The error message
-	 * @param file The file that the error is being thrown in
-	 * @param line The line that the error is being thrown on
+	 * Params:
+	 * 		_msg	=	The error message
+	 * 		file	=	The file that the error is being thrown in
+	 * 		line	=	The line that the error is being thrown on
 	 */
     this (string _msg, string file=__FILE__, int line=__LINE__) {
     	super(_msg, file, line);

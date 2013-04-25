@@ -1,22 +1,19 @@
-/**
- * @file window.d
- * @brief D ncurses window class wrappers
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Nov 12, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * Window wrappers
+ *
+ * Author: Matthew Soucy, msoucy@csh.rit.edu
+ * Date: Nov 12, 2012
+ * Version: 0.0.1
  */
-///D ncurses window class wrappers
 module metus.dncurses.window;
 
 
-/// @cond NoDoc
 import std.string : strlen, toStringz;
 import std.algorithm : canFind;
 import std.conv : to;
 public import metus.dncurses.base;
 public import metus.dncurses.formatting;
 import metus.dncurses.mode;
-/// @endcond
 
 
 ///Positioning style for subwindow creation
@@ -30,7 +27,6 @@ enum Positioning {
 
 /// Window wrapper
 class Window {
-	/// @cond NoDoc
 	package {
 		Window m_parent = null;
 		Window[] m_children = [];
@@ -50,7 +46,8 @@ class Window {
 	/**
 	 * Constructor from a C-style window
 	 *
-	 * @param raw The base ncurses window to use
+	 * Param:
+	 * 		raw	=	The base ncurses window to use
 	 */
 	package this(nc.WINDOW* raw)
 	in {
@@ -62,10 +59,11 @@ class Window {
 	/**
 	 * Construct an ncurses Window
 	 *
-	 * @param nlines The number of lines for the window
-	 * @param lcols The number of columns for the window
-	 * @param y0 The number of the first row that the window uses
-	 * @param x0 The number of the first column that the window uses
+	 * Param:
+	 * 		nlines	=	The number of lines for the window
+	 * 		lcols	=	The number of columns for the window
+	 * 		y0	=	The number of the first row that the window uses
+	 * 		x0	=	The number of the first column that the window uses
 	 */
 	this(int nlines, int ncols, int y0, int x0)
 	in {
@@ -82,12 +80,13 @@ class Window {
 	/**
 	 * Construct an ncurses Window
 	 *
-	 * @param myParent The parent window of the window to be created
-	 * @param nlines The number of lines for the window
-	 * @param lcols The number of columns for the window
-	 * @param y0 The number of the first row that the window uses
-	 * @param x0 The number of the first column that the window uses
-	 * @param ptype Absolute or relative positioning of subwindow
+	 * Param:
+	 * 		myParent	=	The parent window of the window to be created
+	 * 		nlines	=	The number of lines for the window
+	 * 		lcols	=	The number of columns for the window
+	 * 		y0	=	The number of the first row that the window uses
+	 * 		x0	=	The number of the first column that the window uses
+	 * 		ptype	=	Absolute or relative positioning of subwindow
 	 */
 	this(Window myParent, int nlines, int ncols, int y0, int x0, Positioning ptype = Positioning.Absolute)
 	in {
@@ -106,12 +105,20 @@ class Window {
 			m_raw = nc.derwin(m_parent.m_raw, nlines,ncols,y0,x0);
 		}
 	}
-	/// @endcond
 
 	/**
 	 * Get the window's parent
 	 *
-	 * @return The parent window of the current window
+	 * Returns: The parent window of the current window
+	 */
+	nc.WINDOW* raw() @property {
+		return m_raw;
+	}
+
+	/**
+	 * Get the window's parent
+	 *
+	 * Returns: The parent window of the current window
 	 */
 	Window parent() @property {
 		return m_parent;
@@ -120,7 +127,7 @@ class Window {
 	/**
 	 * Duplicate a window
 	 *
-	 * @return A copy window of the current window
+	 * Returns: A copy window of the current window
 	 */
 	Window dup() @property {
 		return new Window(nc.dupwin(m_raw));
@@ -129,8 +136,9 @@ class Window {
 	/**
 	 * Resize a window
 	 *
-	 * @param rows The number of rows the window contains
-	 * @param columns The number of columns the window contains
+	 * Param:
+	 * 		rows	=	The number of rows the window contains
+	 * 		columns	=	The number of columns the window contains
 	 */
 	void resize(int rows, int columns) {
 		if(nc.wresize(m_raw, rows, columns) != nc.OK) {
@@ -157,7 +165,8 @@ class Window {
 	 * If this is set to true, then getch is nonblocking
 	 * Otherwise, it's blocking
 	 *
-	 * @param bf true if calls to getch should be nonblocking
+	 * Param:
+	 * 		bf	=	true if calls to getch should be nonblocking
 	 */
 	void nodelay(bool bf) @property {
 		if(nc.nodelay(m_raw,bf) != nc.OK) {
@@ -171,7 +180,8 @@ class Window {
 	 * If this is set to 0, then nonblocking read is used
 	 * If this is set to a positive number, then getch will block for delay milliseconds.
 	 *
-	 * @param delay The delay value
+	 * Param:
+	 * 		delay	=	The delay value
 	 */
 	void timeout(int delay) @property {
 		nc.wtimeout(m_raw,delay);
@@ -179,7 +189,8 @@ class Window {
 	/**
 	 * Enable the user's keypad
 	 *
-	 * @param enabled true to enable keypad detection, false otherwise
+	 * Param:
+	 * 		enabled	=	true to enable keypad detection, false otherwise
 	 */
 	void keypad(bool enabled) @property {
 		if(nc.keypad(m_raw,(currKeypad=enabled)) != nc.OK) {
@@ -189,7 +200,8 @@ class Window {
 	/**
 	 * Enable 8 significant digits of input
 	 *
-	 * @param enabled true to enable meta keys, false otherwise
+	 * Param:
+	 * 		enabled	=	true to enable meta keys, false otherwise
 	 */
 	void meta(bool enabled) @property {
 		if(nc.meta(m_raw,(currMeta=enabled)) != nc.OK) {
@@ -209,8 +221,9 @@ class Window {
 	/**
 	 * Delete a character
 	 *
-	 * @param row The row of the character to move to
-	 * @param col The column of the character to move to
+	 * Param:
+	 * 		row	=	The row of the character to move to
+	 * 		col	=	The column of the character to move to
 	 */
 	void delch(int row, int col) {
 		this.cursor(row, col);
@@ -219,17 +232,15 @@ class Window {
 	/**
 	 * Delete a character
 	 *
-	 * @param pos The position of the character to move to
+	 * Param:
+	 * 		pos	=	The position of the character to move to
 	 */
 	void delch(Pos pos) {
 		delch(pos.y, pos.x);
 	}
 
 
-	/**
-	 * @name Output functions
-	 * @{
-	 */
+	/// Output data to the window
 	auto put(T:string)(T str) {
 		if(parent !is null) {
 			parent.refresh();
@@ -239,6 +250,7 @@ class Window {
 		}
 		return this;
 	}
+	/// ditto
 	auto put(T:Pos)(T p) {
 		if(parent !is null) {
 			parent.refresh();
@@ -248,6 +260,7 @@ class Window {
 		}
 		return this;
 	}
+	/// ditto
 	auto put(T:AttributeString)(T str) {
 		if(parent !is null) {
 			parent.refresh();
@@ -265,6 +278,7 @@ class Window {
 		}
 		return this;
 	}
+	/// ditto
 	auto put(T:TextAttribute)(T attr) {
 		if(parent !is null) {
 			parent.refresh();
@@ -272,9 +286,11 @@ class Window {
 		attr.apply(m_raw);
 		return this;
 	}
+	/// ditto
 	auto put(T)(T t) {
 		return this.put(t.to!string());
 	}
+	/// ditto
 	auto put(T...)(T t) {
 		if(parent !is null) {
 			parent.refresh();
@@ -284,21 +300,15 @@ class Window {
 		}
 		return this;
 	}
-	/// @cond NoDoc
+	/// ditto
 	alias print = put;
-	/// @endcond
-	/// @}
 
-	/**
-	 * @name Window background
-	 * @{
-	 */
 	/**
 	 * Apply a set of attributes to the background of a window
 	 *
-	 * @fn bkgd(TextAttribute[] attrs ...)
-	 * @param attrs The attributes to apply
-	 * @return this
+	 * Param:
+	 * 		attrs	=	The attributes to apply
+	 * Returns: this
 	*/
 	auto bkgd(TextAttribute[] attrs ...) {
 		foreach(attr;attrs) {
@@ -309,9 +319,9 @@ class Window {
 	/**
 	 * Set the background character
 	 *
-	 * @fn bkgd(char c)
-	 * @param c The new background character
-	 * @return this
+	 * Param:
+	 * 		c	=	The new background character
+	 * Returns: this
 	*/
 	auto bkgd(char c) {
 		nc.wbkgdset(m_raw, (nc.getbkgd(m_raw)&~nc.A_CHARTEXT)|c);
@@ -319,8 +329,6 @@ class Window {
 	}
 	/**
 	 * Apply a set of attributes and background character to a window
-	 *
-	 * @fn bkgd(char c, TextAttribute[] attrs ...)
 	*/
 	auto bkgd(char c, TextAttribute[] attrs ...) {
 		return bkgd(c).bkgd(attrs);
@@ -328,13 +336,11 @@ class Window {
 	/**
 	 * Retrieve the background information from a character
 	 *
-	 * @fn bkgd()
-	 * @return The background information
+	 * Returns: The background information
 	*/
 	auto bkgd() {
 		return nc.getbkgd(m_raw);
 	}
-	/// @}
 
 
 
@@ -344,7 +350,7 @@ class Window {
 	/**
 	 * Get a single keypress
 	 *
-	 * @return The pressed key
+	 * Returns: The pressed key
 	 */
 	auto getch() {
 		return nc.wgetch(m_raw);
@@ -354,9 +360,10 @@ class Window {
 	 *
 	 * Moves to a given position before getting the character
 	 *
-	 * @param row The row to move to
-	 * @param col The column to move to
-	 * @return The pressed key
+	 * Param:
+	 * 		row	=	The row to move to
+	 * 		col	=	The column to move to
+	 * Returns: The pressed key
 	 */
 	auto getch(int row, int col) {
 		this.cursor(row, col);
@@ -367,8 +374,9 @@ class Window {
 	 *
 	 * Moves to a given position before getting the character
 	 *
-	 * @param p The position to move to
-	 * @return The pressed key
+	 * Param:
+	 * 		p	=	The position to move to
+	 * Returns: The pressed key
 	 */
 	auto getch(Pos p) {
 		return this.getch(p.y, p.x);
@@ -377,7 +385,7 @@ class Window {
 	/**
 	 * Get a string from the window
 	 *
-	 * @return The string entered by the user
+	 * Returns: The string entered by the user
 	 */
 	string getstr() {
 		// Make sure not to output directly
@@ -488,8 +496,9 @@ class Window {
 	/**
 	 * Get a string from the window
 	 *
-	 * @param maxlen The maximum length of a string to get
-	 * @return The string entered by the user
+	 * Param:
+	 * 		maxlen	=	The maximum length of a string to get
+	 * Returns: The string entered by the user
 	 */
 	string getstr(int maxlen) {
 		// We know the max length
@@ -507,9 +516,10 @@ class Window {
 	 *
 	 * Moves to a given position before getting the string
 	 *
-	 * @param row The row to move to
-	 * @param col The column to move to
-	 * @return The string entered by the user
+	 * Param:
+	 * 		row	=	The row to move to
+	 * 		col	=	The column to move to
+	 * Returns: The string entered by the user
 	 */
 	auto getstr(int row, int col) {
 		this.cursor(row, col);
@@ -520,10 +530,11 @@ class Window {
 	 *
 	 * Moves to a given position before getting the string
 	 *
-	 * @param row The row to move to
-	 * @param col The column to move to
-	 * @param maxlen The maximum length of a string to get
-	 * @return The string entered by the user
+	 * Param:
+	 * 		row	=	The row to move to
+	 * 		col	=	The column to move to
+	 * 		maxlen	=	The maximum length of a string to get
+	 * Returns: The string entered by the user
 	 */
 	auto getstr(int row, int col, int maxlen) {
 		this.cursor(row, col);
@@ -534,8 +545,9 @@ class Window {
 	 *
 	 * Moves to a given position before getting the string
 	 *
-	 * @param p The position to move to
-	 * @return The string entered by the user
+	 * Param:
+	 * 		p	=	The position to move to
+	 * Returns: The string entered by the user
 	 */
 	auto getstr(Pos p) {
 		this.cursor(p.y, p.x);
@@ -546,9 +558,10 @@ class Window {
 	 *
 	 * Moves to a given position before getting the string
 	 *
-	 * @param p The position to move to
-	 * @param maxlen The maximum length of a string to get
-	 * @return The string entered by the user
+	 * Param:
+	 * 		p	=	The position to move to
+	 * 		maxlen	=	The maximum length of a string to get
+	 * Returns: The string entered by the user
 	 */
 	auto getstr(Pos p, int maxlen) {
 		this.cursor(p.y, p.x);
@@ -556,13 +569,7 @@ class Window {
 	}
 
 
-	/**
-	 * @name Updating
-	 * @{
-	 */
-	/**
-	 * Refresh the window display
-	 */
+	/// Refresh the window display
 	void refresh() {
 		if(parent !is null) {
 			parent.refresh();
@@ -571,42 +578,32 @@ class Window {
 			throw new NCursesException("Could not refresh window");
 		}
 	}
-	/**
-	 * Blank out the window
-	 */
+	/// Blank out the window
 	void erase() {
 		if(nc.werase(m_raw) != nc.OK) {
 			throw new NCursesException("Could not erase window");
 		}
 	}
-	/**
-	 * Blank out the window and repaint on next refresh
-	 */
+	/// Blank out the window and repaint on next refresh
 	void clear() {
 		if(nc.wclear(m_raw) != nc.OK) {
 			throw new NCursesException("Could not erase window");
 		}
 	}
-	/**
-	 * Blank out the window from the cursor to the end of the screen
-	 */
+	/// Blank out the window from the cursor to the end of the screen
 	void clrtobot() {
 		if(nc.wclrtobot(m_raw) != nc.OK) {
 			throw new NCursesException("Could not erase window");
 		}
 	}
-	/**
-	 * Blank out the window from the cursor to the end of the line
-	 */
+	/// Blank out the window from the cursor to the end of the line
 	void clrtoeol() {
 		if(nc.wclrtoeol(m_raw) != nc.OK) {
 			throw new NCursesException("Could not erase window");
 		}
 	}
 
-	/**
-	 * Tell the window to redraw everything
-	 */
+	/// Tell the window to redraw everything
 	void touch() {
 		if(nc.touchwin(m_raw) != nc.OK) {
 			throw new NCursesException("Error touching window");
@@ -615,25 +612,25 @@ class Window {
 	/**
 	 * Tell the window to redraw a specific area
 	 *
-	 * @param start The starting line number
-	 * @param count The number of lines to touch
+	 * Param:
+	 * 		start	=	The starting line number
+	 * 		count	=	The number of lines to touch
 	 */
 	void touch(int start, int count) {
 		if(nc.touchline(m_raw, start, count) != nc.OK) {
 			throw new NCursesException("Error touching lines");
 		}
 	}
-	/**
-	 * Touch all parent locations that are changed in win
-	 */
+	/// Touch all parent locations that are changed in win
 	void sync() {
 		nc.wsyncup(m_raw);
 	}
 	/**
 	 * Automatically call sync when the window is updated
 	 *
-	 * @param isOk true to automatically sync, false otherwise
-	 * @return isOk
+	 * Param:
+	 * 		isOk	=	true to automatically sync, false otherwise
+	 * Returns: isOk
 	 */
 	bool syncok(bool isOk) @property {
 		if(nc.syncok(m_raw, isOk) != nc.OK) {
@@ -641,14 +638,14 @@ class Window {
 		}
 		return isOk;
 	}
-	/// @}
 
 	/**
 	 * Allow or disable scrolling
 	 *
 	 * Tell the window whether it is allowed to scroll upon print
 	 *
-	 * @param isOk Whether scrolling is allowed or not
+	 * Param:
+	 * 		isOk	=	Whether scrolling is allowed or not
 	 */
 	void scrollok(bool isOk) @property {
 		nc.scrollok(m_raw, isOk);
@@ -656,14 +653,11 @@ class Window {
 
 
 	/**
-	 * @name Movement and Coordinates
-	 * @{
-	 */
-	/**
 	 * Move the cursor position
 	 *
-	 * @param y The row to move to
-	 * @param x The column to move to
+	 * Param:
+	 * 		y	=	The row to move to
+	 * 		x	=	The column to move to
 	 */
 	void cursor(int y, int x) {
 		if(nc.wmove(m_raw,y,x) != nc.OK) {
@@ -689,8 +683,9 @@ class Window {
 	 * The current window is moved relative to the screen.
 	 * Coordinates are given for the top left corner of the window
 	 *
-	 * @param y The row to move to
-	 * @param x The column to move to
+	 * Param:
+	 * 		y	=	The row to move to
+	 * 		x	=	The column to move to
 	 */
 	void move(int y, int x) {
 		if(parent !is null) {
@@ -701,13 +696,7 @@ class Window {
 		}
 		this.refresh();
 	}
-	/// @}
 
-
-	/**
-	 * @name Borders
-	 * @{
-	 */
 
 	/**
 	 * Create a border around the current window
@@ -715,14 +704,15 @@ class Window {
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
 	 *
-	 * @param ls The character to use for the left side. Default to ACS.VLINE
-	 * @param rs The character to use for the right side. Default to ACS.VLINE
-	 * @param ts The character to use for the top. Default to ACS.HLINE
-	 * @param bs The character to use for the bottom. Default to ACS.HLINE
-	 * @param tl The character to use for the top left corner. Default to ACS.ULCORNER
-	 * @param tr The character to use for the top right corner. Default to ACS.URCORNER
-	 * @param bl The character to use for the bottom left corner. Default to ACS.LLCORNER
-	 * @param br The character to use for the bottom right corner. Default to ACS.LRCORNER
+	 * Param:
+	 * 		ls	=	The character to use for the left side. Default to ACS.VLINE
+	 * 		rs	=	The character to use for the right side. Default to ACS.VLINE
+	 * 		ts	=	The character to use for the top. Default to ACS.HLINE
+	 * 		bs	=	The character to use for the bottom. Default to ACS.HLINE
+	 * 		tl	=	The character to use for the top left corner. Default to ACS.ULCORNER
+	 * 		tr	=	The character to use for the top right corner. Default to ACS.URCORNER
+	 * 		bl	=	The character to use for the bottom left corner. Default to ACS.LLCORNER
+	 * 		br	=	The character to use for the bottom right corner. Default to ACS.LRCORNER
 	 */
 	void border(CharType ls = 0, CharType rs = 0, CharType ts = 0, CharType bs = 0,
 		CharType tl = 0, CharType tr = 0, CharType bl = 0, CharType br = 0)
@@ -741,10 +731,13 @@ class Window {
 	 * The border takes up the first and last rows and columns inside the window.
 	 * If 0 is used for any argument, the default character is used instead.
 	 * Equivalent to:
-	 * @code border(verch, verch, horch, horch, 0, 0, 0, 0) @endcode
+	 * ---
+	 * border(verch, verch, horch, horch, 0, 0, 0, 0);
+	 * ---
 	 *
-	 * @param verch The character to use for the vertical sides
-	 * @param horch The character to use for the horizontal sides
+	 * Param:
+	 * 		verch	=	The character to use for the vertical sides
+	 * 		horch	=	The character to use for the horizontal sides
 	*/
 	void box(CharType verch, CharType horch)
 	{
@@ -756,7 +749,6 @@ class Window {
 		}
 		this.refresh();
 	}
-	/// @}
 
 	// Flags
 	/// Is this a sub-window?

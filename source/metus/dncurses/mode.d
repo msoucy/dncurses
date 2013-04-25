@@ -1,15 +1,13 @@
-/**
- * @file mode.d
- * @brief D ncurses mode information
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Dec 2, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * D ncurses mode information
+ *
+ * Authors: Matthew Soucy, msoucy@csh.rit.edu
+ * Date: Dec 2, 2012
+ * Version: 0.0.1
  */
-/// D ncurses mode information
 module metus.dncurses.mode;
 
 
-/// @cond NoDoc
 import std.conv : to;
 import metus.dncurses.base;
 
@@ -19,28 +17,24 @@ protected:
 		throw new NCursesException("Mode is undefined");
 	}
 }
-/// @endcond
 
 /// Flags to determine whether entering cooked mode clears flags
 immutable enum SetFlags {
+	/// Do not clear flags
 	No,
+	/// Clear flags
 	Yes
 }
 
-/**
- * @name Modes
- *
- * Different input modes provided by ncurses
- * @{
- */
 /**
  * Enter cooked mode
  *
  * Cooked mode is the same as regular terminal input.
  * All special characters are handled outside of the application
  *
- * @param cf true to clear the IXON and ISIG flags, false to leave them
- * @return A cooked mode specifier
+ * Params:
+ * 		cf	=	true to clear the IXON and ISIG flags, false to leave them
+ * Returns: A cooked mode specifier
  */
 Mode Cooked(SetFlags cf = SetFlags.No) @safe pure nothrow {
 	return new class Mode {
@@ -65,7 +59,7 @@ Mode Cooked(SetFlags cf = SetFlags.No) @safe pure nothrow {
  * Entered characters are immediately available to the application.
  * No special processing is performed for the kill or erase characters.
  *
- * @return A cbreak mode specifier
+ * Returns: A cbreak mode specifier
  */
 Mode CBreak() @safe pure nothrow {
 	return new class Mode {
@@ -85,8 +79,9 @@ Mode CBreak() @safe pure nothrow {
  *
  * Behaves like cbreak mode, but the application waits a specified interval
  *
- * @param tenths The time to wait, in tenths of a second
- * @return A halfdelay mode specifier
+ * Params:
+ * 		tenths	=	The time to wait, in tenths of a second
+ * Returns: A halfdelay mode specifier
  */
 Mode HalfDelay(ubyte tenths) @safe pure {
 	if(tenths == 0) {
@@ -110,7 +105,7 @@ Mode HalfDelay(ubyte tenths) @safe pure {
  * The application receives each character as it is entered.
  * No special processing is performed.
  *
- * @return A raw mode specifier
+ * Returns: A raw mode specifier
  */
 Mode Raw() @safe nothrow pure {
 	return new class Mode {
@@ -124,24 +119,15 @@ Mode Raw() @safe nothrow pure {
 		}
 	};
 }
-/// @}
 
-/// @cond NoDoc
 private static Mode currMode;
-/// @endcond
 
-
-/**
- * @name Handle modes
- *
- * Work with the current mode
- * @{
- */
 /**
  * Set the current mode to a new mode
  *
- * @param m The new mode to use
- * @return The new mode
+ * Params:
+ * 		m	=	The new mode to use
+ * Returns: The new mode
  */
 Mode mode(Mode m) @property {
 	if(m is null || m.apply() != nc.OK) {
@@ -153,12 +139,11 @@ Mode mode(Mode m) @property {
 /**
  * Get the current mode
  *
- * @return The current mode object
+ * Returns: The current mode object
  */
 Mode mode() @property @safe nothrow {
 	return currMode;
 }
-/// @}
 
 /// Initialize the current mode
 static this() {

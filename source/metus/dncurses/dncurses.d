@@ -1,18 +1,19 @@
-/**
- * @file dncurses.d
- * @brief D ncurses class wrappers
- * @author Matthew Soucy <msoucy@csh.rit.edu>
- * @date Nov 12, 2012
- * @version 0.0.1
+/*******************************************************************************
+ * Main entry point for ncurses
+ *
+ * Provides functions to initialize and deinitialize the main windows.
+ * This would be done as static this()/static ~this(), but we need to
+ * have the ability to exit ncurses mode and reenter it later.
+ *
+ * Authors: Matthew Soucy, msoucy@csh.rit.edu
+ * Date: Nov 12, 2012
+ * Version: 0.0.1
  */
-///D ncurses class wrappers
 module metus.dncurses.dncurses;
 
 
-/// @cond NoDoc
 public import metus.dncurses.window;
 public import metus.dncurses.mode;
-/// @endcond
 
 
 /**
@@ -23,14 +24,12 @@ public import metus.dncurses.mode;
 public Window stdwin;
 
 
-// Wrap the original ncurses implementations
-
 /**
  * Initialize the screen
  *
  * Creates stdwin and forces echo to be true
  *
- * @return stdwin
+ * Returns: stdwin
 */
 Window initscr() {
 	 // Call library initscr and bind our standard window
